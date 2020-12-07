@@ -1,0 +1,106 @@
+!!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!! NEMO/TOP1 :  Configuration namelist : used to overwrite defaults values defined in SHARED/namelist_top_ref
+!>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!-----------------------------------------------------------------------
+&namtrc_run     !   run information
+!-----------------------------------------------------------------------
+   ln_rsttr      = .true.    !  start from a restart file (T) or not (F)
+   nn_rsttr      =   2       !  restart control = 0 initial time step is not compared to the restart file value
+                             !                  = 1 do not use the value in the restart file
+                             !                  = 2 calendar parameters read in the restart file
+   cn_trcrst_in  = "ORCH0083-LIM3_03048480_restart_trc"   !  prefix of ocean restart name (input)
+   cn_trcrst_indir = "./RESTARTS"    !  directory from which to read input passive tracer restarts
+   cn_trcrst_out = "restart_trc"   !  suffix of pass. sn_tracer restart name (output)
+   cn_trcrst_outdir = "./RESTARTS"   !  directory to which to write output passive tracer restarts
+/
+!-----------------------------------------------------------------------
+&namtrc     !   tracers definition
+!-----------------------------------------------------------------------
+   ln_age        =   .true.  !  Run the sea water age tracer
+   ln_my_trc     =   .false.  !  Run MY_TRC BGC model
+!                !        !                                    !                                         !         !         !       !
+!                !  name  !         title of the field         !  units  ! initial data from file or not !   sbc   !   cbc   !  obc  !
+  sn_tracer(1)  =   'Age' ,             'Ideal age'            , 'years' ,            .false.            , .false. , .false. , .false.
+  sn_tracer(2)  =  'NAge' , 'Ideal age from northern boundary' , 'years' ,            .false.            , .false. , .false. , .false.
+/
+!-----------------------------------------------------------------------
+&namage         !   AGE 
+!-----------------------------------------------------------------------
+   rn_age_depth      = 10            ! depth over which age tracer reset to zero
+   rn_age_kill_rate  = -0.000138888  !  = -1/7200 recip of relaxation timescale (s) for  age tracer shallower than age_depth
+/
+!-----------------------------------------------------------------------
+&namtrc_dta      !    Initialisation from data input file
+!-----------------------------------------------------------------------
+/
+!-----------------------------------------------------------------------
+&namtrc_adv      !   advection scheme for passive tracer
+!-----------------------------------------------------------------------
+   ln_trcadv_cen =  .false.  !  2nd order centered scheme
+      nn_cen_h   =  4               !  =2/4, horizontal 2nd order CEN / 4th order CEN
+      nn_cen_v   =  4               !  =2/4, vertical   2nd order CEN / 4th order COMPACT
+   ln_trcadv_fct =  .false.  !  FCT scheme
+      nn_fct_h   =  2               !  =2/4, horizontal 2nd / 4th order 
+      nn_fct_v   =  2               !  =2/4, vertical   2nd / COMPACT 4th order 
+      nn_fct_zts =  0               !  >=1,  2nd order FCT scheme with vertical sub-timestepping
+      !                             !        (number of sub-timestep = nn_fct_zts)
+   ln_trcadv_mus =  .true.   !  MUSCL scheme
+      ln_mus_ups =  .false.         !  use upstream scheme near river mouths
+   ln_trcadv_ubs =  .false.  !  UBS scheme
+      nn_ubs_v   =  2               !  =2  , vertical 2nd order FCT
+   ln_trcadv_qck =  .false.  !  QUICKEST scheme
+/
+/
+!-----------------------------------------------------------------------
+&namtrc_ldf      !   lateral diffusion scheme for passive tracer
+!-----------------------------------------------------------------------
+!                            !  Type of the operator:  
+   ln_trcldf_lap   =  .true.     !    laplacian operator
+   ln_trcldf_blp   =  .false.    !  bilaplacian operator
+   !                         !  Direction of action:
+   ln_trcldf_lev   =  .false.    !  iso-level
+   ln_trcldf_hor   =  .false.    !  horizontal (geopotential)
+   ln_trcldf_iso   =  .true.     !  iso-neutral (standard operator)
+   ln_trcldf_triad =  .false.    !  iso-neutral (triad    operator)
+   !                         !  Coefficient 
+   rn_ahtrc_0      = 1500.       !  lateral eddy diffusivity   (lap. operator) [m2/s]
+   rn_bhtrc_0      = 1.e+12      !  lateral eddy diffusivity (bilap. operator) [m4/s]
+   !
+   rn_fact_lap      =     1.     !     enhanced zonal eddy diffusivity
+/
+!-----------------------------------------------------------------------
+&namtrc_zdf      !   vertical physics
+!-----------------------------------------------------------------------
+/
+!-----------------------------------------------------------------------
+&namtrc_rad      !  treatment of negative concentrations
+!-----------------------------------------------------------------------
+   ln_trcrad     =  .false.   !  artificially correct negative concentrations (T) or not (F)
+/
+!-----------------------------------------------------------------------
+&namtrc_dmp      !   passive tracer newtonian damping   
+!-----------------------------------------------------------------------
+/
+!-----------------------------------------------------------------------
+&namtrc_ice      !    Representation of sea ice growth & melt effects
+!-----------------------------------------------------------------------
+   nn_ice_tr     =   0       !  tracer concentration in sea ice
+/
+!----------------------------------------------------------------------
+&namtrc_trd      !   diagnostics on tracer trends          ('key_trdtrc')
+!-----------------------------------------------------------------------
+/
+!----------------------------------------------------------------------
+&namtrc_bc       !   data for boundary conditions
+!-----------------------------------------------------------------------
+/
+!----------------------------------------------------------------------
+&namtrc_bdy      !   Setup of tracer boundary conditions
+!-----------------------------------------------------------------------
+   cn_trc_dflt   = 'frs'     !  OBC applied by default to all tracers
+   cn_trc        = 'frs'     !  Boundary conditions used for tracers with data files (selected in namtrc)
+   nn_trcdmp_bdy = 0         !  Use damping timescales defined in nambdy of namelist
+                             !  = 0 NO damping of tracers at open boudaries
+                             !  = 1 Only for tracers forced with external data
+                             !  = 2 Damping applied to all tracers
+/

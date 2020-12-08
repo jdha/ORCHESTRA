@@ -3,14 +3,14 @@
  
 display_usage() { 
    echo
-   echo "  Auto-Config: ICECAV on ARCHER"
+   echo "  Auto-Config: ORCHESTRA on ARCHER"
    echo "  ***************************************"
    echo
    echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo"
    echo
    echo "  flags:  -w full path to where nemo will be installed"
    echo "          -x full path to where xios will be installed"
-   echo "          -s full path to where ICECAV repository resides"
+   echo "          -s full path to where ORCHESTRA repository resides"
    echo
    exit 1
 	} 
@@ -71,21 +71,12 @@ module load cray-hdf5-parallel
 module load cray-netcdf-hdf5parallel
 
 # Checkout the NEMO code from the SVN Paris repository 
-echo "Checking out NEMO repository"
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.2 --depth empty nemo
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.2/src --depth infinity nemo/src
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/utils/build/mk nemo/mk
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.2/cfgs/SHARED nemo/cfgs/SHARED
-svn export http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r4.0.2/cfgs/ref_cfgs.txt nemo/cfgs/ref_cfgs.txt
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/vendors/FCM nemo/ext/FCM
-svn co http://forge.ipsl.jussieu.fr/nemo/svn/vendors/IOIPSL nemo/ext/IOIPSL
-svn export http://forge.ipsl.jussieu.fr/nemo/svn/utils/build/makenemo nemo/makenemo
-mkdir nemo/arch
+echo "Can't check out NEMO repository as it no longer exist. Building from saved files."
+mkdir nemo
+mkdir nemo/ARCH
 
-# Setup the directory structure for the ENSEMBLE
-mkdir $WORK_DIR/nemo/tests/ICECAV
 # Define the location of where the ICECAV forcing files are to be downloaded 
-export DOWNLOAD_DIR="$WORK_DIR/nemo/tests/ICECAV/EXP00/"
+export DOWNLOAD_DIR="$WORK_DIR/CONFIG/CORE2NYF-ORCH0083-LIM3/INPUTS/"
 
 echo $XIOS_DIR
 # Choose an appropriate directory for your XIOS installation
@@ -95,9 +86,9 @@ fi
 cd $XIOS_DIR
 echo $PWD
 echo "Checking out xios repository"
-svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1627 xios
+svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios@819 xios
 cd xios
-cp $REPO_DIR/arch/xios/* ./arch
+cp $REPO_DIR/ARCH/xios/* ./arch
 echo "Compiling xios"
 ./make_xios --full --prod --arch archer --netcdf_lib netcdf4_par --job 4
 
@@ -105,54 +96,67 @@ echo "Compiling xios"
 export XIOS_DIR=$XIOS_DIR/xios
 
 cd $WORK_DIR/nemo
-cp $REPO_DIR/arch/nemo/* ./arch
+cp -r $REPO_DIR/CONFIG .
+ln -s $REPO_DIR/NEMO NEMO
+cp $REPO_DIR/ARCH/nemo/* ./ARCH
 # Dirty fix to hard wire path otherwise user will have to set XIOS_DIR in every new shell session
-sed "s?XXX_XIOS_DIR_XXX?$XIOS_DIR?" ./arch/arch-archer.fcm > tmp_arch
-mv tmp_arch ./arch/arch-archer.fcm
+sed "s?XXX_XIOS_DIR_XXX?$XIOS_DIR?" ./ARCH/arch-archer.fcm > tmp_arch
+mv tmp_arch ./ARCH/arch-archer.fcm
 
-echo 'ICECAV OCE ' >> $WORK_DIR/nemo/tests/work_cfgs.txt
-
-mkdir tests/ICECAV/EXP00
 echo "Gathering forcing data"
 
-export CONFIG_DIR=$WORK_DIR/nemo/tests/ICECAV
+export CONFIG_DIR=$WORK_DIR/CONFIG/CORE2NYF-ORCH0083-LIM3/
 
-# Set up EXP00 for quick testing of the unforced case
+# Set up EXP00 
 
-cd $CONFIG_DIR/EXP00
+cd $CONFIG_DIR/EXP_SZT
 ln -s ../../SHARED/namelist_ref namelist_ref
-ln -s ../../SHARED/namelist_ice_ref namelist_ice_ref
-ln -s ../../SHARED/grid_def_nemo.xml grid_def_nemo.xml
+ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_lim3_ref
+ln -s ../../SHARED/namelist_top_ref namelist_top_ref
+ln -s ../../SHARED/namelist_pices_ref namelist_pices_ref
 ln -s ../../SHARED/field_def_nemo-oce.xml field_def_nemo-oce.xml
-ln -s ../../SHARED/field_def_nemo-ice.xml field_def_nemo-ice.xml
+ln -s ../../SHARED/field_def_nemo-pices.xml field_def_nemo-pices.xml
+ln -s ../../SHARED/field_def_nemo-lim.xml field_def_nemo-lim.xml
 ln -s ../../SHARED/domain_def_nemo.xml domain_def_nemo.xml
-ln -s ../../SHARED/axis_def_nemo.xml axis_def_nemo.xml
-
-mkdir $CONFIG_DIR/EXP00/DOM
-mkdir $CONFIG_DIR/EXP00/ICE
-wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ICECAV/DOM/ -P $CONFIG_DIR/EXP00/DOM
-wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ICECAV/ICE/ -P $CONFIG_DIR/EXP00/ICE
-
+ln -s ../INPUTS INPUTS
+ln -s ../FORCING FORCING
+ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
 mkdir OUTPUTS
 
-ln -s $XIOS_DIR/bin/xios_server.exe $CONFIG_DIR/EXP00/xios_server.exe
+cd $CONFIG_DIR/EXP_ZPS
+ln -s ../../SHARED/namelist_ref namelist_ref
+ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_lim3_ref
+ln -s ../../SHARED/namelist_top_ref namelist_top_ref
+ln -s ../../SHARED/namelist_pices_ref namelist_pices_ref
+ln -s ../../SHARED/field_def_nemo-oce.xml field_def_nemo-oce.xml
+ln -s ../../SHARED/field_def_nemo-pices.xml field_def_nemo-pices.xml
+ln -s ../../SHARED/field_def_nemo-lim.xml field_def_nemo-lim.xml
+ln -s ../../SHARED/domain_def_nemo.xml domain_def_nemo.xml
+ln -s ../INPUTS INPUTS
+ln -s ../FORCING FORCING
+ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
+mkdir meta_out
+mkdir RESTARTS
+mkdir OUTPUTS
 
-cp $REPO_DIR/EXP00/* $CONFIG_DIR/EXP00/
+mkdir $CONFIG_DIR/INPUTS
+mkdir $CONFIG_DIR/FORCING
+#wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
+#wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
+
 cp -r $REPO_DIR/MY_SRC $CONFIG_DIR
-cp $REPO_DIR/cpp_ICECAV.fcm $CONFIG_DIR/
-
 cd $WORK_DIR/nemo
 
-echo "Compiling nemo ICECAV Config"
-./makenemo -m archer -u ICECAV -j 8
+echo "Compiling nemo ORCHESTRA Config"
+./makenemo -m archer -u ORCHESTRA -j 8
 
 echo
-echo "  Auto-Config: ICECAV"
+echo "  Auto-Config: ORCHESTRA"
 echo "  *****************************"
 echo
-echo "  To run the ICECAV Configuration:"
+echo "  To run the ORCHESTRA Configuration:"
 echo
 echo "  - update the runscript.pbs accordingly "
 echo "      (project code, nodes, modules, etc)"

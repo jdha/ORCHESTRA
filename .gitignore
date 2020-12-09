@@ -33,3 +33,6 @@
 
 # Binary data
 *.nc
+
+# SVN stuff
+.svn

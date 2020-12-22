@@ -98,6 +98,8 @@ export XIOS_DIR=$XIOS_DIR/xios
 cd $WORK_DIR/nemo
 cp -r $REPO_DIR/CONFIG .
 ln -s $REPO_DIR/NEMO NEMO
+ln -s $REPO_DIR/EXTERNAL EXTERNAL
+ln -s $REPO_DIR/TOOLS TOOLS
 cp $REPO_DIR/ARCH/nemo/* ./ARCH
 # Dirty fix to hard wire path otherwise user will have to set XIOS_DIR in every new shell session
 sed "s?XXX_XIOS_DIR_XXX?$XIOS_DIR?" ./ARCH/arch-archer.fcm > tmp_arch
@@ -146,11 +148,18 @@ mkdir $CONFIG_DIR/FORCING
 #wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
 #wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
 
-cp -r $REPO_DIR/MY_SRC $CONFIG_DIR
-cd $WORK_DIR/nemo
+cd $WORK_DIR/nemo/CONFIG
 
-echo "Compiling nemo ORCHESTRA Config"
-./makenemo -m archer -u ORCHESTRA -j 8
+echo "Compiling nemo ORCHESTRA Config INIT"
+./makenemo -m archer -n CORE2NYF-ORCH0083-LIM3 -j 8
+cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXP00/opa_init
+
+rm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
+ln -s cpp_CORE2NYF-ORCH0083-LIM3_SPIN.fcm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
+echo "Compiling nemo ORCHESTRA Config MAIN"
+./makenemo -m archer -n CORE2NYF-ORCH0083-LIM3 -j 8 clean
+./makenemo -m archer -n CORE2NYF-ORCH0083-LIM3 -j 8
+cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXP00/opa_main
 
 echo
 echo "  Auto-Config: ORCHESTRA"

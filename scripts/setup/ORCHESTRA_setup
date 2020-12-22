@@ -1,27 +1,28 @@
 #!/bin/bash
-# Lightweight script to set up ICECAV on ARCHER
+# Lightweight script to set up ORCHESTRA
  
 display_usage() { 
    echo
    echo "  Auto-Config: ORCHESTRA on ARCHER"
    echo "  ***************************************"
    echo
-   echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo"
+   echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo -m machine"
    echo
    echo "  flags:  -w full path to where nemo will be installed"
    echo "          -x full path to where xios will be installed"
    echo "          -s full path to where ORCHESTRA repository resides"
+   echo "          -m machine on which to compile code"
    echo
    exit 1
 	} 
 # if less than three arguments supplied, display usage 
-	if [  $# -le 5 ] 
+	if [  $# -le 7 ] 
 	then 
 		display_usage
 		exit 1
 	fi 
 # if less than two arguments supplied, display usage 
-	if [  $# -ge 7 ] 
+	if [  $# -ge 9 ] 
 	then 
 		display_usage
 		exit 1
@@ -33,13 +34,14 @@ display_usage() {
 		exit 0
 	fi 
 
-while getopts w:x:s: option
+while getopts w:x:s:m: option
   do
   case "${option}"
   in
   w) export WORK_DIR=${OPTARG};;
   x) export XIOS_DIR=${OPTARG};;
   s) export REPO_DIR=${OPTARG};;
+  m) export HPC_TARG=${OPTARG};;
   esac
 done
 
@@ -66,9 +68,16 @@ cd $WORK_DIR
 
 echo "Making sure that the correct modules are loaded"
 
-module swap PrgEnv-cray PrgEnv-intel
-module load cray-hdf5-parallel
-module load cray-netcdf-hdf5parallel
+case "${HPC_TARG}"
+  in
+  archer)  module swap PrgEnv-cray PrgEnv-intel
+           module load cray-hdf5-parallel
+           module load cray-netcdf-hdf5parallel
+           ;;
+  *)       echo "Machine not recognised"
+           echo "Machines available: archer"
+           exit 1
+esac
 
 # Checkout the NEMO code from the SVN Paris repository 
 echo "Can't check out NEMO repository as it no longer exist. Building from saved files."
@@ -90,7 +99,7 @@ svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/trunk@819 xios
 cd xios
 cp $REPO_DIR/ARCH/xios/* ./arch
 echo "Compiling xios"
-./make_xios --full --prod --arch archer --netcdf_lib netcdf4_par --job 4
+./make_xios --full --prod --arch $HPC_TARG --netcdf_lib netcdf4_par --job 4
 
 # Let's update the path to xios
 export XIOS_DIR=$XIOS_DIR/xios
@@ -103,7 +112,7 @@ ln -s $REPO_DIR/TOOLS TOOLS
 cp $REPO_DIR/ARCH/nemo/* ./ARCH
 # Dirty fix to hard wire path otherwise user will have to set XIOS_DIR in every new shell session
 sed "s?XXX_XIOS_DIR_XXX?$XIOS_DIR?" ./ARCH/arch-archer.fcm > tmp_arch
-mv tmp_arch ./ARCH/arch-archer.fcm
+mv tmp_arch ./ARCH/arch-$HPC_TARG.fcm
 
 echo "Gathering forcing data"
 
@@ -151,14 +160,14 @@ mkdir $CONFIG_DIR/FORCING
 cd $WORK_DIR/nemo/CONFIG
 
 echo "Compiling nemo ORCHESTRA Config INIT"
-./makenemo -m archer -n CORE2NYF-ORCH0083-LIM3 -j 8
+./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8
 cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXP00/opa_init
 
 rm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
 ln -s cpp_CORE2NYF-ORCH0083-LIM3_SPIN.fcm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
 echo "Compiling nemo ORCHESTRA Config MAIN"
-./makenemo -m archer -n CORE2NYF-ORCH0083-LIM3 -j 8 clean
-./makenemo -m archer -n CORE2NYF-ORCH0083-LIM3 -j 8
+./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8 clean
+./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8
 cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXP00/opa_main
 
 echo

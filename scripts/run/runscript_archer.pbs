@@ -1,0 +1,40 @@
+#!/bin/bash 
+#PBS -N orch0083
+#PBS -l walltime=01:00:00
+#PBS -l select=25
+#PBS -j oe
+#PBS -A n01-ORCHESTRA
+
+#! -----------------------------------------------------------------------------
+
+export PBS_O_WORKDIR=$(readlink -f $PBS_O_WORKDIR)  
+export OMP_NUM_THREADS=1
+cd $PBS_O_WORKDIR
+
+echo " ";
+export OCEANCORES=278
+export XIOCORES=2
+
+#! -----------------------------------------------------------------------------
+
+ulimit -c unlimited
+ulimit -s unlimited
+export FORT_FMT_RECL=164
+
+#! -----------------------------------------------------------------------------
+
+#! Specify the job number.
+export JOBNO='0000'
+
+#! -----------------------------------------------------------------------------
+
+#! Make the links to the input and forcing files.
+#!  ../JOB/make_links.sh
+
+#! -----------------------------------------------------------------------------
+
+rm opa
+ln -s ../EXP00/opa_init opa
+aprun -n $XIOCORES -N 2 -S 1 ./xios_server.exe >&  stdouterr_xios : -n $OCEANCORES -N 12 -S 6 ./opa >&  stdouterr_nemo
+cp ocean.output ocean.output.$PBS_JOBID
+cp namelist_cfg namelist_cfg.$PBS_JOBID

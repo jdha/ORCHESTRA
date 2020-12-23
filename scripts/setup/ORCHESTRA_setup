@@ -157,8 +157,9 @@ cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
 mkdir $CONFIG_DIR/BDY_ECCO_RW24
 mkdir $CONFIG_DIR/INPUTS
 mkdir $CONFIG_DIR/FORCING
-wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/BDY_ECCO_RW24
+wget -r -nH --cut-dirs=4  -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/BDY_ECCO_RW24/ -P $CONFIG_DIR/BDY_ECCO_RW24
 wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
+wget -r -nd -np -e robots=off -A 'name*' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
 wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
 
 cd $WORK_DIR/nemo/CONFIG

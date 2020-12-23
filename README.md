@@ -5,7 +5,7 @@ Southern Ocean 1/12 NEMO configuration
 
 ```
 git clone git@github.com:jdha/ORCHESTRA.git
-./ORCHESTRA/scripts/setup/orchestra_setup_archer -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA
+./ORCHESTRA/scripts/setup/orchestra_setup_archer -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA -m archer
 cd orch/nemo/CONFIG/CORE2NYF-ORCH0083-LIM3/EXP_ZPS
 ```
 Edit the project code in  `runscript.pbs` then:

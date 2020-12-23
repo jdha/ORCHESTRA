@@ -24,24 +24,25 @@
 &namrun        !   parameters of the run
 !-----------------------------------------------------------------------
    cn_exp      = "ORCH0083-LIM3"  !  experience name 
-   nn_it000    =  1        !  first time step
-   nn_itend    =  105120   !  last  time step 
+   nn_it000    =        1   !  first  time step
+   nn_itend    =      288  !  last  time step
    nn_date0    = 19480101  !  date at nit_0000 (format yyyymmdd) used if ln_rstart=F or (ln_rstart=T and nn_rstctl=0 or 1)
    nn_leapy    =       0   !  Leap year calendar (1) or not (0)
-   ln_rstart   =  .false.  !  start from rest (F) or from a restart file (T)
+   ln_rstart   =  .false.   !  start from rest (F) or from a restart file (T)
+   ln_reset_ts =  .false.   ! 
    nn_rstctl   =       2   !  restart control => activated only if ln_rstart = T
                            !    = 0 nn_date0 read in namelist ; nn_it000 : read in namelist
                            !    = 1 nn_date0 read in namelist ; nn_it000 : check consistancy between namelist and restart
                            !    = 2 nn_date0 read in restart  ; nn_it000 : check consistancy between namelist and restart
-   cn_ocerst_in  = "ORCH0083-LIM3_00052128_restart_oce"    !  suffix of ocean restart name (input)
+   cn_ocerst_in  = "ORCH0083-LIM3_03670272_restart_oce"   !  prefix of ocean restart name (input)
    cn_ocerst_indir = "./RESTARTS"    !  directory from which to read input ocean restarts
    cn_ocerst_out = "restart_oce"     !  suffix of ocean restart name (output)
    cn_ocerst_outdir = "./RESTARTS"   !  directory in which to write output ocean restarts
    nn_istate   =       0   !  output the initial state (1) or not (0)
    ln_mskland  = .false.   !  mask land points in NetCDF outputs (costly: + ~15%)
-   ln_rst_list = .false.   !  output restarts at list of times using nn_stocklist (T) or at set frequency with nn_stock (F)
-   nn_stock    = 105120    !  frequency of creation of a restart file (modulo referenced to 1)
-   nn_stocklist = 105120   ! List of timesteps when a restart file is to be written
+   ln_rst_list = .false.    !  output restarts at list of times using nn_stocklist (T) or at set frequency with nn_stock (F)
+   nn_stocklist = 3679200
+   nn_stock    = 8928    !  frequency of creation of a restart file (modulo referenced to 1)
    ln_clobber  = .true.    !  clobber (overwrite) an existing file
 /
 !
@@ -59,7 +60,7 @@
 &namcfg        !   parameters of the configuration
 !-----------------------------------------------------------------------
    ln_read_cfg = .true.               !  (=T) read the domain configuration file
-   cn_domcfg   = "./INPUTS/domain_cfg_50_noisf.nc"         ! domain configuration filename
+   cn_domcfg   = "./INPUTS/domain_cfg_szt"         ! domain configuration filename
 /
 !-----------------------------------------------------------------------
 &namdom        !   space and time domain (bathymetry, mesh, timestep)
@@ -75,18 +76,13 @@
 !-----------------------------------------------------------------------
 !          !  file name                                 ! frequency (hours) ! variable  ! time interp. !  clim  ! 'yearly'/ !                 weights                  ! rotation ! land/sea mask !
 !          !                                            !  (if <0  months)  !   name    !   (logical)  !  (T/F) ! 'monthly' !                 filename                 ! pairing  ! filename      !
-!   sn_tem  = 'ECCOv4_EN4.1.1_TEOS-10'   ,         -1        ,'votemper' ,     .true.   , .true. , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
-!   sn_sal  = 'ECCOv4_EN4.1.1_TEOS-10'   ,         -1        ,'vosaline' ,     .true.   , .true. , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
-!   cn_dir  = './INPUTS/'
-!   ln_tsd_init   = .true.   !  Initialisation of ocean T & S with T &S input data (T) or not (F)
-!   ln_tsd_tradmp = .false.  !  damping of ocean T & S toward T &S input data (T) or not (F)
-   sn_tem  = 'EN4.1.1_75L_monthly_19952014_reg1d_C_0_TEOS-10'   ,         -1        ,'votemper' ,     .true.   , .true. , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
-   sn_sal  = 'EN4.1.1_75L_monthly_19952014_reg1d_C_0_TEOS-10'   ,         -1        ,'vosaline' ,     .true.   , .true. , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
-   sn_dep  = 'tmp1'                                             ,     -12  ,'deptht_4D',   .false.   , .true.  , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
+   sn_tem  = 'ECCOv4_EN4.1.1_TEOS-10'   ,         -1        ,'votemper' ,     .true.   , .true. , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
+   sn_sal  = 'ECCOv4_EN4.1.1_TEOS-10'   ,         -1        ,'vosaline' ,     .true.   , .true. , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
+   sn_dep  = 'initcd_dept'                                             ,     -12  ,'deptht_4D',   .false.   , .true.  , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
    sn_msk  = 'initcd_mask'                                      ,     -12  ,'mask'     ,   .false.   , .true.  , 'yearly'   , 'eORCA12_EN4.1.1f_reg_weights_bilin_munday.nc' ,    ''    ,      ''
    
    cn_dir  = './INPUTS/'
-   ln_tsd_init   = .true.   !  Initiaisation of ocean T & S with T &S input data (T) or not (F)
+   ln_tsd_init   = .true.   !  Initialisation of ocean T & S with T &S input data (T) or not (F)
    ln_tsd_interp = .true.    !  Interpolation of T & S in the verticalinput data (T) or not (F)
    ln_tsd_tradmp = .false.  !  damping of ocean T & S toward T &S input data (T) or not (F)
 /
@@ -122,20 +118,20 @@
    ln_flx      = .false.   !  flux formulation                          (T => fill namsbc_flx )
    ln_blk      = .true.    !  Bulk formulation                          (T => fill namsbc_blk )
    ln_apr_dyn  = .false.   !  Patm gradient added in ocean & ice Eqs.   (T => fill namsbc_apr )
-   nn_ice      = 0         !  =0 no ice boundary condition   ,
+   nn_ice      = 3         !  =0 no ice boundary condition   ,
                            !  =1 use observed ice-cover      ,
                            !  =2 to 4 :  ice-model used (LIM2, LIM3 or CICE)                         ("key_lim3", "key_lim2", or "key_cice")
    nn_ice_embd = 1         !  =0 levitating ice (no mass exchange, concentration/dilution effect)
                            !  =1 levitating ice with mass and salt exchange but no presure effect
                            !  =2 embedded sea-ice (full salt and mass exchanges and pressure)  
-   ln_traqsr   = .false.    !  Light penetration in the ocean            (T => fill namtra_qsr)
-   ln_dm2dc    = .false.    !  daily mean to diurnal cycle on short wave
-   ln_rnf      = .false.    !  runoffs                                   (T => fill namsbc_rnf)
+   ln_traqsr   = .true.    !  Light penetration in the ocean            (T => fill namtra_qsr)
+   ln_dm2dc    = .true.    !  daily mean to diurnal cycle on short wave
+   ln_rnf      = .true.    !  runoffs                                   (T => fill namsbc_rnf)
    ln_ssr      = .false.   !  Sea Surface Restoring on T and/or S       (T => fill namsbc_ssr)
    nn_fwb      = 1         !  FreshWater Budget: =0 unchecked
                            !     =1 global mean of e-p-r set to zero at each time step
                            !     =2 annual global mean of e-p-r set to zero
-   ln_isf      = .false.    !  ice shelf                                 (T   => fill namsbc_isf)
+   ln_isf      = .true.    !  ice shelf                                 (T   => fill namsbc_isf)
 /
 !-----------------------------------------------------------------------
 &namsbc_blk   !   namsbc_blk  generic Bulk formula                      (ln_blk = T)
@@ -162,7 +158,7 @@
    ln_taudif   = .false.   !  HF tau contribution: use "mean of stress module - module of the mean stress" data ?
 ! ACC   rn_zqt      = 2.        !  Air temperature and humidity reference height (m) (ln_bulk2z) <-- EY comments that the reference height might differ between the
 ! PM    rn_zqt      = 10.       !  Air temperature and humidity reference height (m) (ln_bulk2z) <-- interannually varying and normal year forcing.
-   rn_zqt      = 10.        !  Air temperature and humidity reference height (m) (ln_bulk2z)
+   rn_zqt      = 10.       !  Air temperature and humidity reference height (m) (ln_bulk2z)
    rn_zu       = 10.       !  Wind vector reference height (m)                  (ln_bulk2z)
    rn_pfac     = 1.        !  multiplicative factor for precipitation (total & snow)
    rn_efac     = 1.        !  multiplicative factor for evaporation (0. or 1.)
@@ -204,16 +200,16 @@
 !-----------------------------------------------------------------------
 &namsbc_isf    !  Top boundary layer (ISF) 
 !-----------------------------------------------------------------------
-   nn_isf      = 0         !  ice shelf melting/freezing                (/=0 => fill namsbc_isf)
+   nn_isf      = 3         !  ice shelf melting/freezing                (/=0 => fill namsbc_isf)
                            !  0 =no isf                  1 = presence of ISF 
                            !  2 = bg03 parametrisation   3 = rnf file for isf   
                            !  4 = ISF fwf specified
                            !  option 1 and 4 need ln_isfcav = .true. (domzgr)
 !               !  file name              ! frequency (hours) !  variable  ! time interp. !  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
 !               !                         !  (if <0  months)  !    name    !   (logical)  !  (T/F) ! 'monthly' ! filename ! pairing  ! filename      !
-   sn_rnfisf    = 'eORCA12_runoff_munday_modified' ,         -1        , 'sofwfisf' ,    .true.    , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
-   sn_depmax_isf= 'eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmax',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
-   sn_depmin_isf= 'eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmin',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_rnfisf    = './FORCING/eORCA12_runoff_munday_modified' ,         -1        , 'sofwfisf' ,    .true.    , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_depmax_isf= './FORCING/eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmax',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_depmin_isf= './FORCING/eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmin',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
 /
 !-----------------------------------------------------------------------
 &namsbc_apr    !   Atmospheric pressure used as ocean forcing           (ln_apr_dyn =T)
@@ -299,7 +295,7 @@
 &nam_tide      !   tide parameters
 !-----------------------------------------------------------------------
    ln_tide     = .false.
-   ln_tide_pot = .true.    !  use tidal potential forcing
+   ln_tide_pot = .false.    !  use tidal potential forcing
    ln_tide_ramp= .false.   !
    rdttideramp =   1.     !
 
@@ -319,16 +315,16 @@
     ln_bdy         = .true.               !  Use unstructured open boundaries
     nb_bdy         = 1                    !  number of open boundary sets
     ln_coords_file = .true.               !  =T : read bdy coordinates from file
-    cn_coords_file = 'coordinates.bdy.nc' !  bdy coordinates files
-    ln_mask_file   = .false.               !  =T : read mask from file
-    cn_mask_file   = './INPUTS/domain_cfg_50_noisf.nc'           !  name of mask file (if ln_mask_file=.TRUE.)
+    cn_coords_file = '../BDY_ECCO_RW24/coordinates.bdy.nc' !  bdy coordinates files
+    ln_mask_file   = .true.               !  =T : read mask from file
+    cn_mask_file   = './INPUTS/domain_cfg_szt'           !  name of mask file (if ln_mask_file=.TRUE.)
     cn_dyn2d       = 'flather'            !
     nn_dyn2d_dta   = 1                    !  = 0, bdy data are equal to the initial state
                                           !  = 1, bdy data are read in 'bdydata   .nc' files
                                           !  = 2, use tidal harmonic forcing data from files
                                           !  = 3, use external data AND tidal harmonic forcing
     cn_dyn3d      =  'neumann'            !
-    nn_dyn3d_dta  =  0                    !  = 0, bdy data are equal to the initial state
+    nn_dyn3d_dta  =  1                    !  = 0, bdy data are equal to the initial state
                                           !  = 1, bdy data are read in 'bdydata   .nc' files
     cn_tra        =  'frs'                !
     nn_tra_dta    =  1                    !  = 0, bdy data are equal to the initial state
@@ -342,12 +338,12 @@
                                           !
     ln_tra_dmp    =.false.                !  open boudaries conditions for tracers
     ln_dyn3d_dmp  =.false.                !  open boundary condition for baroclinic velocities
-    rn_time_dmp   =  20.                  ! Damping time scale in days
-    rn_time_dmp_out =  20.                ! Outflow damping time scale
+    rn_time_dmp   =  10.                  ! Damping time scale in days
+    rn_time_dmp_out =  10.                ! Outflow damping time scale
     nn_rimwidth   = 24                    !  width of the relaxation zone
     ln_vol        = .true.                !  total volume correction (see nn_volctl parameter)
     nn_volctl     = 0                     !  = 0, the total water flux across open boundaries is zero
-    nb_jpk_bdy    = 75                 ! number of levels in the bdy data (set < 0 if consistent with planned run)
+    nb_jpk_bdy    = 75                    ! number of levels in the bdy data (set < 0 if consistent with planned run)
 /
 !-----------------------------------------------------------------------
 &nambdy_index ! open boundaries - definition ("key_bdy")
@@ -399,7 +395,7 @@
 !-----------------------------------------------------------------------
 &nambbc        !   bottom temperature boundary condition
 !-----------------------------------------------------------------------
-   ln_trabbc   = .false.   !  Apply a geothermal heating at the ocean bottom
+   ln_trabbc   = .true.   !  Apply a geothermal heating at the ocean bottom
    nn_geoflx   =    2      !  geothermal heat flux: = 0 no flux 
                            !     = 1 constant flux
                            !     = 2 variable flux (read in geothermal_heating.nc in mW/m2)
@@ -411,8 +407,8 @@
 !-----------------------------------------------------------------------
 &nambbl        !   bottom boundary layer scheme
 !-----------------------------------------------------------------------
-   nn_bbl_ldf  =  1      !  diffusive bbl (=1)   or not (=0)
-   nn_bbl_adv  =  1      !  advective bbl (=1/2) or not (=0)
+   nn_bbl_ldf  =  0      !  diffusive bbl (=1)   or not (=0)
+   nn_bbl_adv  =  0      !  advective bbl (=1/2) or not (=0)
    rn_ahtbbl   =  1000.  !  lateral mixing coefficient in the bbl  [m2/s]
    rn_gambbl   =  10.    !  advective bbl coefficient                 [s]
 /
@@ -620,6 +616,10 @@
 !-----------------------------------------------------------------------
 &nammpp        !   Massively Parallel Processing                        ("key_mpp_mpi)
 !-----------------------------------------------------------------------
+! Big queue values.
+!   jpni        =   144      !  jpni   number of processors following i (set automatically if < 1)
+!   jpnj        =   67       !  jpnj   number of processors following j (set automatically if < 1)
+!   jpnij       =   4785     !  jpnij  number of local domains (set automatically if < 1)
 ! Normal queue values.
 !   jpni        =   103      !  jpni   number of processors following i (set automatically if < 1)
 !   jpnj        =   48       !  jpnj   number of processors following j (set automatically if < 1)
@@ -627,11 +627,11 @@
 ! Medium queue values.
     jpni        =   32       !  jpni   number of processors following i (set automatically if < 1)
     jpnj        =   15       !  jpnj   number of processors following j (set automatically if < 1)
-    jpnij       =   277      !  jpnij  number of local domains (set automatically if < 1)
+    jpnij       =   278      !  jpnij  number of local domains (set automatically if < 1)
 ! Short queue values.
-!  jpni        =   30      !  jpni   number of processors following i (set automatically if < 1)
-!  jpnj        =   9       !  jpnj   number of processors following j (set automatically if < 1)
-!  jpnij       =   162     !  jpnij  number of local domains (set automatically if < 1)
+!   jpni        =   30      !  jpni   number of processors following i (set automatically if < 1)
+!   jpnj        =   9       !  jpnj   number of processors following j (set automatically if < 1)
+!   jpnij       =   162     !  jpnij  number of local domains (set automatically if < 1)
 /
 !-----------------------------------------------------------------------
 &namctl        !   Control prints & Benchmark

@@ -10,7 +10,9 @@
     
       <file_group id="1ts" output_freq="1ts"  output_level="10" enabled=".TRUE." /> <!-- 1 time step files -->
 
-      <file_group id="1h" output_freq="1h"  output_level="10" enabled=".TRUE." split_freq="1h"/> <!-- 1h files -->
+      <file_group id="1h" output_freq="1h"  output_level="10" enabled=".TRUE." split_freq="1h"> <!-- 1h files -->
+      </file_group>
+
       <file_group id="2h" output_freq="2h"  output_level="10" enabled=".TRUE."/> <!-- 2h files -->
       <file_group id="3h" output_freq="3h"  output_level="10" enabled=".TRUE."/> <!-- 3h files -->     
       <file_group id="4h" output_freq="4h"  output_level="10" enabled=".TRUE."/> <!-- 4h files -->

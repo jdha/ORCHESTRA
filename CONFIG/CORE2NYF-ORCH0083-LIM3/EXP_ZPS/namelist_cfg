@@ -24,11 +24,12 @@
 &namrun        !   parameters of the run
 !-----------------------------------------------------------------------
    cn_exp      = "ORCH0083-LIM3"  !  experience name 
-   nn_it000    =  3670273   !  first  time step
-   nn_itend    =  3679200   !  last  time step
+   nn_it000    =        1   !  first  time step
+   nn_itend    =      288   !  last  time step
    nn_date0    = 19480101  !  date at nit_0000 (format yyyymmdd) used if ln_rstart=F or (ln_rstart=T and nn_rstctl=0 or 1)
    nn_leapy    =       0   !  Leap year calendar (1) or not (0)
-   ln_rstart   =  .true.   !  start from rest (F) or from a restart file (T)
+   ln_rstart   =  .false.   !  start from rest (F) or from a restart file (T)
+   ln_reset_ts =  .false.   ! 
    nn_rstctl   =       2   !  restart control => activated only if ln_rstart = T
                            !    = 0 nn_date0 read in namelist ; nn_it000 : read in namelist
                            !    = 1 nn_date0 read in namelist ; nn_it000 : check consistancy between namelist and restart
@@ -39,7 +40,7 @@
    cn_ocerst_outdir = "./RESTARTS"   !  directory in which to write output ocean restarts
    nn_istate   =       0   !  output the initial state (1) or not (0)
    ln_mskland  = .false.   !  mask land points in NetCDF outputs (costly: + ~15%)
-   ln_rst_list = .true.    !  output restarts at list of times using nn_stocklist (T) or at set frequency with nn_stock (F)
+   ln_rst_list = .false.    !  output restarts at list of times using nn_stocklist (T) or at set frequency with nn_stock (F)
    nn_stocklist = 3679200
    nn_stock    = 8928    !  frequency of creation of a restart file (modulo referenced to 1)
    ln_clobber  = .true.    !  clobber (overwrite) an existing file
@@ -59,7 +60,7 @@
 &namcfg        !   parameters of the configuration
 !-----------------------------------------------------------------------
    ln_read_cfg = .true.               !  (=T) read the domain configuration file
-   cn_domcfg   = "domain_cfg"         ! domain configuration filename
+   cn_domcfg   = "./INPUTS/domain_cfg_zps"         ! domain configuration filename
 /
 !-----------------------------------------------------------------------
 &namdom        !   space and time domain (bathymetry, mesh, timestep)
@@ -202,9 +203,9 @@
                            !  option 1 and 4 need ln_isfcav = .true. (domzgr)
 !               !  file name              ! frequency (hours) !  variable  ! time interp. !  clim  ! 'yearly'/ ! weights  ! rotation ! land/sea mask !
 !               !                         !  (if <0  months)  !    name    !   (logical)  !  (T/F) ! 'monthly' ! filename ! pairing  ! filename      !
-   sn_rnfisf    = 'eORCA12_runoff_munday_modified' ,         -1        , 'sofwfisf' ,    .true.    , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
-   sn_depmax_isf= 'eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmax',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
-   sn_depmin_isf= 'eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmin',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_rnfisf    = './FORCING/eORCA12_runoff_munday_modified' ,         -1        , 'sofwfisf' ,    .true.    , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_depmax_isf= './FORCING/eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmax',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
+   sn_depmin_isf= './FORCING/eORCA12_runoff_munday_modified' ,         -12       , 'sozisfmin',    .false.   , .true. , 'yearly'  ,    ''    ,   ''     ,    ''
 /
 !-----------------------------------------------------------------------
 &namsbc_apr    !   Atmospheric pressure used as ocean forcing           (ln_apr_dyn =T)
@@ -296,9 +297,9 @@
     ln_bdy         = .true.               !  Use unstructured open boundaries
     nb_bdy         = 1                    !  number of open boundary sets
     ln_coords_file = .true.               !  =T : read bdy coordinates from file
-    cn_coords_file = 'coordinates.bdy.nc' !  bdy coordinates files
+    cn_coords_file = '../BDY_ECCO_RW24/coordinates.bdy.nc' !  bdy coordinates files
     ln_mask_file   = .true.               !  =T : read mask from file
-    cn_mask_file   = 'domain_cfg'           !  name of mask file (if ln_mask_file=.TRUE.)
+    cn_mask_file   = './INPUTS/domain_cfg_zps'           !  name of mask file (if ln_mask_file=.TRUE.)
     cn_dyn2d       = 'flather'            !
     nn_dyn2d_dta   = 1                    !  = 0, bdy data are equal to the initial state
                                           !  = 1, bdy data are read in 'bdydata   .nc' files
@@ -593,13 +594,18 @@
 !-----------------------------------------------------------------------
 &nammpp        !   Massively Parallel Processing                        ("key_mpp_mpi)
 !-----------------------------------------------------------------------
-! Normal queue values.
-   jpni        =   103      !  jpni   number of processors following i (set automatically if < 1)
-   jpnj        =   48       !  jpnj   number of processors following j (set automatically if < 1)
-   jpnij       =   2542     !  jpnij  number of local domains (set automatically if < 1)
+! Big queue values.
 !   jpni        =   144      !  jpni   number of processors following i (set automatically if < 1)
 !   jpnj        =   67       !  jpnj   number of processors following j (set automatically if < 1)
 !   jpnij       =   4785     !  jpnij  number of local domains (set automatically if < 1)
+! Normal queue values.
+!   jpni        =   103      !  jpni   number of processors following i (set automatically if < 1)
+!   jpnj        =   48       !  jpnj   number of processors following j (set automatically if < 1)
+!   jpnij       =   2542     !  jpnij  number of local domains (set automatically if < 1)
+! Medium queue values.
+    jpni        =   32       !  jpni   number of processors following i (set automatically if < 1)
+    jpnj        =   15       !  jpnj   number of processors following j (set automatically if < 1)
+    jpnij       =   278      !  jpnij  number of local domains (set automatically if < 1)
 ! Short queue values.
 !   jpni        =   30      !  jpni   number of processors following i (set automatically if < 1)
 !   jpnj        =   9       !  jpnj   number of processors following j (set automatically if < 1)

@@ -31,8 +31,5 @@
 *.out
 *.app
 
-# Binary data
-*.nc
-
 # SVN stuff
 .svn

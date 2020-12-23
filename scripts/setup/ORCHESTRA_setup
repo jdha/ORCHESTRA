@@ -122,7 +122,7 @@ export CONFIG_DIR=$WORK_DIR/nemo/CONFIG/CORE2NYF-ORCH0083-LIM3
 
 cd $CONFIG_DIR/EXP_SZT
 ln -s ../../SHARED/namelist_ref namelist_ref
-ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_lim3_ref
+ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_ref
 ln -s ../../SHARED/namelist_top_ref namelist_top_ref
 ln -s ../../SHARED/namelist_pisces_ref namelist_pisces_ref
 ln -s ../../SHARED/field_def_nemo-opa.xml field_def_nemo-opa.xml
@@ -135,10 +135,11 @@ ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
 mkdir OUTPUTS
+cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
 
 cd $CONFIG_DIR/EXP_ZPS
 ln -s ../../SHARED/namelist_ref namelist_ref
-ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_lim3_ref
+ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_ref
 ln -s ../../SHARED/namelist_top_ref namelist_top_ref
 ln -s ../../SHARED/namelist_pisces_ref namelist_pisces_ref
 ln -s ../../SHARED/field_def_nemo-opa.xml field_def_nemo-opa.xml
@@ -151,11 +152,14 @@ ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
 mkdir OUTPUTS
+cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
 
+mkdir $CONFIG_DIR/BDY_ECCO_RW24
 mkdir $CONFIG_DIR/INPUTS
 mkdir $CONFIG_DIR/FORCING
-#wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
-#wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
+wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/BDY_ECCO_RW24
+wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
+wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
 
 cd $WORK_DIR/nemo/CONFIG
 

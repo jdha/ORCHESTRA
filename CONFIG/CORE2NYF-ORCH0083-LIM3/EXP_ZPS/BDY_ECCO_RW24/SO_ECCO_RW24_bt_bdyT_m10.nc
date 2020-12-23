@@ -1,0 +1,1 @@
+../../BDY_ECCO_RW24/EOS-80/SO_ECCO_RW24_bt_bdyT_y2000m10.nc

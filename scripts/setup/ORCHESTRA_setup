@@ -162,6 +162,7 @@ wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jm
 wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
 
 cd $WORK_DIR/nemo/CONFIG
+mkdir $CONFIG_DIR/EXP00
 
 echo "Compiling nemo ORCHESTRA Config INIT"
 ./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8

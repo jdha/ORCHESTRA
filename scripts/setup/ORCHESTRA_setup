@@ -74,6 +74,8 @@ case "${HPC_TARG}"
            module load cray-hdf5-parallel
            module load cray-netcdf-hdf5parallel
            ;;
+  archer2) module -s restore /work/n01/shared/acc/n01_modules/ucx_env	   
+	   ;;
   *)       echo "Machine not recognised"
            echo "Machines available: archer"
            exit 1
@@ -185,5 +187,5 @@ echo
 echo "  - update the runscript.pbs accordingly "
 echo "      (project code, nodes, modules, etc)"
 echo
-echo "  - submit via the qsub command"
+echo "  - submit via the qsub/sbatch command"
 echo    

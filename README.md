@@ -13,6 +13,14 @@ Edit the project code in  `runscript.pbs` then:
 qsub runscript.pbs
 ```
 
+## ATB Quick Start
+
+I had to replace the git command with:
+
+```
+git clone https://atb299@github.com/jdha/ORCHESTRA.git
+```
+
 ### Forcing/Input data:
 
 [ORCHESTRA](http://gws-access.ceda.ac.uk/public/jmmp_collab/ORCHESTRA)

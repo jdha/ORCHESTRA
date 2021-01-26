@@ -111,7 +111,7 @@ CONTAINS
      ! ENDIF
       !
       !                             ! allocate the arrays (if necessary)
-      IF(  ln_tsd_init .OR. ln_tsd_tradmp  ) THEN
+      IF(  ln_tsd_init .OR. ln_tsd_tradmp .OR. ln_reset_ts  ) THEN
          !
          IF( ln_tsd_interp ) THEN
            ALLOCATE( sf_tsd(jpts+2), STAT=ierr0 ) ! to carry the addtional depth information
@@ -213,7 +213,7 @@ CONTAINS
       ENDIF
 !!gm end
       !
-      IF( kt == nit000 .AND. lwp )THEN
+      IF( ( kt == nit000 .OR. ln_reset_ts ) .AND. lwp )THEN
          WRITE(numout,*)
          WRITE(numout,*) 'dta_tsd: interpolates T & S data onto current mesh'
       ENDIF

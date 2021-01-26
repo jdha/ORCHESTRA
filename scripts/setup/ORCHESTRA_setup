@@ -74,7 +74,7 @@ case "${HPC_TARG}"
            module load cray-hdf5-parallel
            module load cray-netcdf-hdf5parallel
            ;;
-  archer2) module -s restore $REPODIR/scripts/env/ucx_env	   
+  archer2) module -s restore $REPO_DIR/scripts/env/ucx_env	   
 	   ;;
   *)       echo "Machine not recognised"
            echo "Machines available: archer"

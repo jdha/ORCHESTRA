@@ -142,7 +142,17 @@ ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
 mkdir OUTPUTS
-cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
+
+case "${HPC_TARG}"
+  in
+  archer)  cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
+           ;;
+  archer2) sed "s?_REPO_DIR_?$REPO_DIR?" $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs > runscript.pbs	   
+	   ;;
+  *)       echo "Machine not recognised. You will need to create your own runscript."
+           echo "Machines available: archer, archer2"
+esac
+
 
 cd $CONFIG_DIR/EXP_ZPS
 ln -s ../../SHARED/namelist_ref namelist_ref
@@ -159,7 +169,16 @@ ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
 mkdir OUTPUTS
-cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
+
+case "${HPC_TARG}"
+  in
+  archer)  cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
+           ;;
+  archer2) sed "s?_REPO_DIR_?$REPO_DIR?" $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs > runscript.pbs	   
+	   ;;
+  *)       echo "Machine not recognised. You will need to create your own runscript."
+           echo "Machines available: archer, archer2"
+esac
 
 mkdir $CONFIG_DIR/BDY_ECCO_RW24
 mkdir $CONFIG_DIR/INPUTS

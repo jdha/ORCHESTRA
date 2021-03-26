@@ -5,20 +5,13 @@ Southern Ocean 1/12 NEMO configuration
 
 ```
 git clone git@github.com:jdha/ORCHESTRA.git
-./ORCHESTRA/scripts/setup/ORCHESTRA_setup -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA -m archer
-cd orch/nemo/CONFIG/CORE2NYF-ORCH0083-LIM3/EXP_ZPS
+git checkout nemo4
+./ORCHESTRA/scripts/setup/ORCHESTRA_setup -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA -m archer2 -v 406
+cd orch/nemo/cfgs/CORE2NYF-ORCH0083-LIM3/EXP_ZPS
 ```
-Edit the project code in  `runscript.pbs` then:
+Edit the project code in  `runscript.slurm` then:
 ```
-qsub runscript.pbs
-```
-
-## ATB Quick Start
-
-I had to replace the git command with:
-
-```
-git clone https://atb299@github.com/jdha/ORCHESTRA.git
+sbatch runscript.slurm
 ```
 
 ### Forcing/Input data:

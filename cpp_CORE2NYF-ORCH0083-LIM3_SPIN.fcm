@@ -1,11 +1,1 @@
-bld::tool::fppkeys key_trabbl       \
-                   key_lim3         \
-		   key_zdftke       \
-		   key_zdfddm       \
-		   key_zdftmx       \
-		   key_iomput       \
-		   key_mpp_mpi      \
-		   key_nosignedzero \
-		   key_netcdf4      \
-                   key_diahth       \
-		   key_top
+bld::tool::fppkeys key_mpp_mpi key_nosignedzero key_iomput key_si3 key_top

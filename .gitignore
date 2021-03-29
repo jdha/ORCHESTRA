@@ -33,3 +33,6 @@
 
 # SVN stuff
 .svn
+
+# Other stuff
+.fuse*

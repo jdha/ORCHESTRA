@@ -28,15 +28,14 @@ MODULE domzgr
    USE oce            ! ocean variables
    USE dom_oce        ! ocean domain
    USE usrdef_zgr     ! user defined vertical coordinate system
+   USE closea         ! closed seas
    USE depth_e3       ! depth <=> e3
-   USE wet_dry, ONLY: ln_wd, ht_wd
+   USE wet_dry,   ONLY: ll_wd, ssh_ref  ! Wetting and drying
    !
    USE in_out_manager ! I/O manager
    USE iom            ! I/O library
    USE lbclnk         ! ocean lateral boundary conditions (or mpp link)
    USE lib_mpp        ! distributed memory computing library
-   USE wrk_nemo       ! Memory allocation
-   USE timing         ! Timing
 
    IMPLICIT NONE
    PRIVATE
@@ -46,9 +45,9 @@ MODULE domzgr
   !! * Substitutions
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
-   !! NEMO/OPA 3.3.1 , NEMO Consortium (2011)
-   !! $Id: domzgr.F90 7753 2017-03-03 11:46:59Z mocavero $
-   !! Software governed by the CeCILL licence     (NEMOGCM/NEMO_CeCILL.txt)
+   !! NEMO/OCE 4.0 , NEMO Consortium (2018)
+   !! $Id: domzgr.F90 10425 2018-12-19 21:54:16Z smasson $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS       
 
@@ -76,8 +75,6 @@ CONTAINS
       REAL(wp) ::   zrefdep             ! depth of the reference level (~10m)
       !!----------------------------------------------------------------------
       !
-      IF( nn_timing == 1 )   CALL timing_start('dom_zgr')
-      !
       IF(lwp) THEN                     ! Control print
          WRITE(numout,*)
          WRITE(numout,*) 'dom_zgr : vertical coordinate'
@@ -89,7 +86,7 @@ CONTAINS
 
       IF( ln_read_cfg ) THEN        !==  read in mesh_mask.nc file  ==!
          IF(lwp) WRITE(numout,*)
-         IF(lwp) WRITE(numout,*) '          Read vertical mesh in ', TRIM( cn_domcfg ), ' file'
+         IF(lwp) WRITE(numout,*) '   ==>>>   Read vertical mesh in ', TRIM( cn_domcfg ), ' file'
          !
          CALL zgr_read   ( ln_zco  , ln_zps  , ln_sco, ln_isfcav,   & 
             &              gdept_1d, gdepw_1d, e3t_1d, e3w_1d   ,   &    ! 1D gridpoints depth
@@ -97,7 +94,7 @@ CONTAINS
             &              e3t_0   , e3u_0   , e3v_0 , e3f_0    ,   &    ! vertical scale factors
             &              e3w_0   , e3uw_0  , e3vw_0           ,   &    ! vertical scale factors
             &              k_top   , k_bot            )                  ! 1st & last ocean level
-         !
+            !
 ! DRM 07/08/17 - Modify the top_level (ztop) and bottom_level (zbot) arrays to mask fake ocean points in
 !                Antarctica. Need to convert the indices to the local values.
          k_top( mi0(5), mj0(5):mj0(405) ) = 0
@@ -121,6 +118,10 @@ CONTAINS
       DO jk = 2, jpk
          gde3w_0(:,:,jk) = gde3w_0(:,:,jk-1) + e3w_0(:,:,jk)
       END DO
+      !
+      ! Any closed seas (defined by closea_mask > 0 in domain_cfg file) to be filled 
+      ! in at runtime if ln_closea=.false.
+      IF( .NOT.ln_closea )   CALL clo_bat( k_top, k_bot )
       !
       IF(lwp) THEN                     ! Control print
          WRITE(numout,*)
@@ -166,8 +167,6 @@ CONTAINS
             &                          ' uw', MAXVAL(  e3uw_0(:,:,:) ), ' vw', MAXVAL(  e3vw_0(:,:,:) ),  &
             &                          ' w ', MAXVAL(   e3w_0(:,:,:) )
       ENDIF
-      !
-      IF( nn_timing == 1 )  CALL timing_stop('dom_zgr')
       !
    END SUBROUTINE dom_zgr
 
@@ -257,12 +256,12 @@ CONTAINS
       !
       !                          !* ocean top and bottom level
       CALL iom_get( inum, jpdom_data, 'top_level'    , z2d  , lrowattr=ln_use_jattr )   ! 1st wet T-points (ISF)
-      k_top(:,:) = INT( z2d(:,:) )
+      k_top(:,:) = NINT( z2d(:,:) )
       CALL iom_get( inum, jpdom_data, 'bottom_level' , z2d  , lrowattr=ln_use_jattr )   ! last wet T-points
-      k_bot(:,:) = INT( z2d(:,:) )
+      k_bot(:,:) = NINT( z2d(:,:) )
       !
-      ! bathymetry with orography (wetting and drying only)
-      IF( ln_wd )  CALL iom_get( inum, jpdom_data, 'ht_wd' , ht_wd  , lrowattr=ln_use_jattr )
+      ! reference depth for negative bathy (wetting and drying only)
+      IF( ll_wd )  CALL iom_get( inum,  'rn_wd_ref_depth' , ssh_ref   )
       !
       CALL iom_close( inum )
       !
@@ -287,12 +286,8 @@ CONTAINS
       INTEGER , DIMENSION(:,:), INTENT(in) ::   k_top, k_bot   ! top & bottom ocean level indices
       !
       INTEGER ::   ji, jj   ! dummy loop indices
-      REAL(wp), POINTER, DIMENSION(:,:) ::  zk
+      REAL(wp), DIMENSION(jpi,jpj) ::   zk   ! workspace
       !!----------------------------------------------------------------------
-      !
-      IF( nn_timing == 1 )  CALL timing_start('zgr_top_bot')
-      !
-      CALL wrk_alloc( jpi,jpj,   zk )
       !
       IF(lwp) WRITE(numout,*)
       IF(lwp) WRITE(numout,*) '    zgr_top_bot : ocean top and bottom k-index of T-, U-, V- and W-levels '
@@ -315,16 +310,12 @@ CONTAINS
          END DO
       END DO
       ! converte into REAL to use lbc_lnk ; impose a min value of 1 as a zero can be set in lbclnk 
-      zk(:,:) = REAL( miku(:,:), wp )   ;   CALL lbc_lnk( zk, 'U', 1. )   ;   miku(:,:) = MAX( INT( zk(:,:) ), 1 )
-      zk(:,:) = REAL( mikv(:,:), wp )   ;   CALL lbc_lnk( zk, 'V', 1. )   ;   mikv(:,:) = MAX( INT( zk(:,:) ), 1 )
-      zk(:,:) = REAL( mikf(:,:), wp )   ;   CALL lbc_lnk( zk, 'F', 1. )   ;   mikf(:,:) = MAX( INT( zk(:,:) ), 1 )
+      zk(:,:) = REAL( miku(:,:), wp )   ;   CALL lbc_lnk( 'domzgr', zk, 'U', 1. )   ;   miku(:,:) = MAX( NINT( zk(:,:) ), 1 )
+      zk(:,:) = REAL( mikv(:,:), wp )   ;   CALL lbc_lnk( 'domzgr', zk, 'V', 1. )   ;   mikv(:,:) = MAX( NINT( zk(:,:) ), 1 )
+      zk(:,:) = REAL( mikf(:,:), wp )   ;   CALL lbc_lnk( 'domzgr', zk, 'F', 1. )   ;   mikf(:,:) = MAX( NINT( zk(:,:) ), 1 )
       !
-      zk(:,:) = REAL( mbku(:,:), wp )   ;   CALL lbc_lnk( zk, 'U', 1. )   ;   mbku(:,:) = MAX( INT( zk(:,:) ), 1 )
-      zk(:,:) = REAL( mbkv(:,:), wp )   ;   CALL lbc_lnk( zk, 'V', 1. )   ;   mbkv(:,:) = MAX( INT( zk(:,:) ), 1 )
-      !
-      CALL wrk_dealloc( jpi,jpj,   zk )
-      !
-      IF( nn_timing == 1 )  CALL timing_stop('zgr_top_bot')
+      zk(:,:) = REAL( mbku(:,:), wp )   ;   CALL lbc_lnk( 'domzgr', zk, 'U', 1. )   ;   mbku(:,:) = MAX( NINT( zk(:,:) ), 1 )
+      zk(:,:) = REAL( mbkv(:,:), wp )   ;   CALL lbc_lnk( 'domzgr', zk, 'V', 1. )   ;   mbkv(:,:) = MAX( NINT( zk(:,:) ), 1 )
       !
    END SUBROUTINE zgr_top_bot
 

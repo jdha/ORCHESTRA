@@ -25,13 +25,11 @@ MODULE traadv_mus
    USE diaar5         ! AR5 diagnostics
 
    !
-   USE iom
-   USE wrk_nemo       ! Memory Allocation
-   USE timing         ! Timing
-   USE lib_fortran    ! Fortran utilities (allows no signed zero when 'key_nosignedzero' defined)  
+   USE iom            ! XIOS library
    USE in_out_manager ! I/O manager
    USE lib_mpp        ! distribued memory computing
    USE lbclnk         ! ocean lateral boundary condition (or mpp link) 
+   USE lib_fortran    ! Fortran utilities (allows no signed zero when 'key_nosignedzero' defined)  
 
    IMPLICIT NONE
    PRIVATE
@@ -49,9 +47,9 @@ MODULE traadv_mus
    !! * Substitutions
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
-   !! NEMO/OPA 3.3 , NEMO Consortium (2010)
-   !! $Id: traadv_mus.F90 7753 2017-03-03 11:46:59Z mocavero $ 
-   !! Software governed by the CeCILL licence     (NEMOGCM/NEMO_CeCILL.txt)
+   !! NEMO/OCE 4.0 , NEMO Consortium (2018)
+   !! $Id: traadv_mus.F90 11993 2019-11-28 10:20:53Z cetlod $ 
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 
@@ -84,18 +82,13 @@ CONTAINS
       REAL(wp), DIMENSION(jpi,jpj,jpk,kjpt), INTENT(in   ) ::   ptb             ! before tracer field
       REAL(wp), DIMENSION(jpi,jpj,jpk,kjpt), INTENT(inout) ::   pta             ! tracer trend 
       !
-      INTEGER  ::   ji, jj, jk, jn       ! dummy loop indices
-      INTEGER  ::   ierr                 ! local integer
-      REAL(wp) ::   zu, z0u, zzwx, zw    ! local scalars
-      REAL(wp) ::   zv, z0v, zzwy, z0w   !   -      -
-      REAL(wp) ::   zalpha               !   -      -
-      REAL(wp), POINTER, DIMENSION(:,:,:) ::   zslpx, zslpy   ! 3D workspace
-      REAL(wp), POINTER, DIMENSION(:,:,:) ::   zwx  , zwy     ! -      - 
+      INTEGER  ::   ji, jj, jk, jn   ! dummy loop indices
+      INTEGER  ::   ierr             ! local integer
+      REAL(wp) ::   zu, z0u, zzwx, zw , zalpha   ! local scalars
+      REAL(wp) ::   zv, z0v, zzwy, z0w           !   -      -
+      REAL(wp), DIMENSION(jpi,jpj,jpk) ::   zwx, zslpx   ! 3D workspace
+      REAL(wp), DIMENSION(jpi,jpj,jpk) ::   zwy, zslpy   ! -      - 
       !!----------------------------------------------------------------------
-      !
-      IF( nn_timing == 1 )  CALL timing_start('tra_adv_mus')
-      !
-      CALL wrk_alloc( jpi,jpj,jpk,   zslpx, zslpy, zwx, zwy )
       !
       IF( kt == kit000 )  THEN
          IF(lwp) WRITE(numout,*)
@@ -145,8 +138,8 @@ CONTAINS
                END DO
            END DO
          END DO
-         CALL lbc_lnk( zwx, 'U', -1. )          ! lateral boundary conditions   (changed sign)
-         CALL lbc_lnk( zwy, 'V', -1. )
+         ! lateral boundary conditions   (changed sign)
+         CALL lbc_lnk_multi( 'traadv_mus', zwx, 'U', -1. , zwy, 'V', -1. )
          !                                !-- Slopes of tracer
          zslpx(:,:,jpk) = 0._wp                 ! bottom values
          zslpy(:,:,jpk) = 0._wp
@@ -194,7 +187,7 @@ CONTAINS
                END DO
             END DO
          END DO
-         CALL lbc_lnk( zwx, 'U', -1. )   ;   CALL lbc_lnk( zwy, 'V', -1. )   ! lateral boundary conditions   (changed sign)
+         CALL lbc_lnk_multi( 'traadv_mus', zwx, 'U', -1. , zwy, 'V', -1. )   ! lateral boundary conditions   (changed sign)
          !
          DO jk = 1, jpkm1                 !-- Tracer advective trend
             DO jj = 2, jpjm1      
@@ -214,13 +207,12 @@ CONTAINS
          IF( l_ptr )  CALL dia_ptr_hst( jn, 'adv', zwy(:,:,:) )
          !                                 !  heat transport
          IF( l_hst )  CALL dia_ar5_hst( jn, 'adv', zwx(:,:,:), zwy(:,:,:) )
-         !
          ! DRM - output the fluxes of heat and salt as 3D fields.
-         IF( cdtype == 'TRA' .AND. jn == jp_tem ) CALL iom_put( "uocetem3D", rau0_rcp * zwx ) ! advective heat transport in i-direction.
-         IF( cdtype == 'TRA' .AND. jn == jp_sal ) CALL iom_put( "uocesal3D", rau0 * zwx )     ! advective salt transport in i-direction.
+    !    IF( cdtype == 'TRA' .AND. jn == jp_tem ) CALL iom_put( "uocetem3D", rau0_rcp * zwx ) ! advective heat transport in i-direction.
+    !    IF( cdtype == 'TRA' .AND. jn == jp_sal ) CALL iom_put( "uocesal3D", rau0 * zwx )     ! advective salt transport in i-direction.
          !
-         IF( cdtype == 'TRA' .AND. jn == jp_tem ) CALL iom_put( "vocetem3D", rau0_rcp * zwy ) ! advective heat transport in j-direction.
-         IF( cdtype == 'TRA' .AND. jn == jp_sal ) CALL iom_put( "vocesal3D", rau0 * zwy )     ! advective salt transport in j-direction.
+    !    IF( cdtype == 'TRA' .AND. jn == jp_tem ) CALL iom_put( "vocetem3D", rau0_rcp * zwy ) ! advective heat transport in j-direction.
+    !    IF( cdtype == 'TRA' .AND. jn == jp_sal ) CALL iom_put( "vocesal3D", rau0 * zwy )     ! advective salt transport in j-direction.
          !
          ! DRM - output the fluxes of Age and NAge as 3D fields.
          IF( cdtype == 'TRC' .AND. jn == 1 ) CALL iom_put( "uoceage3D", zwx ) ! advective age transport in i-direction.
@@ -228,7 +220,6 @@ CONTAINS
          !
          IF( cdtype == 'TRC' .AND. jn == 1 ) CALL iom_put( "voceage3D", zwy ) ! advective age transport in j-direction.
          IF( cdtype == 'TRC' .AND. jn == 2 ) CALL iom_put( "vocenag3D", zwy ) ! advective northern boundary age transport in j-direction.
-         !
          !
          !                          !* Vertical advective fluxes
          !
@@ -292,10 +283,6 @@ CONTAINS
          IF( l_trd )  CALL trd_tra( kt, cdtype, jn, jptra_zad, zwx, pwn, ptb(:,:,:,jn) )
          !
       END DO                     ! end of tracer loop
-      !
-      CALL wrk_dealloc( jpi,jpj,jpk,   zslpx, zslpy, zwx, zwy )
-      !
-      IF( nn_timing == 1 )  CALL timing_stop('tra_adv_mus')
       !
    END SUBROUTINE tra_adv_mus
 

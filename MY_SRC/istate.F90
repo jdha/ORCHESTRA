@@ -23,7 +23,6 @@ MODULE istate
    USE oce            ! ocean dynamics and active tracers 
    USE dom_oce        ! ocean space and time domain 
    USE daymod         ! calendar
-   USE divhor         ! horizontal divergence            (div_hor routine)
    USE dtatsd         ! data temperature and salinity   (dta_tsd routine)
    USE dtauvd         ! data: U & V current             (dta_uvd routine)
    USE domvvl          ! varying vertical mesh
@@ -35,8 +34,6 @@ MODULE istate
    USE iom             ! I/O library
    USE lib_mpp         ! MPP library
    USE restart         ! restart
-   USE wrk_nemo        ! Memory allocation
-   USE timing          ! Timing
 
    IMPLICIT NONE
    PRIVATE
@@ -46,9 +43,9 @@ MODULE istate
    !! * Substitutions
 #  include "vectopt_loop_substitute.h90"
    !!----------------------------------------------------------------------
-   !! NEMO/OPA 3.7 , NEMO Consortium (2014)
-   !! $Id: istate.F90 7753 2017-03-03 11:46:59Z mocavero $
-   !! Software governed by the CeCILL licence     (NEMOGCM/NEMO_CeCILL.txt)
+   !! NEMO/OCE 4.0 , NEMO Consortium (2018)
+   !! $Id: istate.F90 13101 2020-06-12 11:10:44Z rblod $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!----------------------------------------------------------------------
 CONTAINS
 
@@ -59,14 +56,16 @@ CONTAINS
       !! ** Purpose :   Initialization of the dynamics and tracer fields.
       !!----------------------------------------------------------------------
       INTEGER ::   ji, jj, jk   ! dummy loop indices
-      REAL(wp), POINTER, DIMENSION(:,:,:,:) ::   zuvd    ! U & V data workspace
+!!gm see comment further down
+      REAL(wp), ALLOCATABLE, DIMENSION(:,:,:,:) ::   zuvd    ! U & V data workspace
+!!gm end
       !!----------------------------------------------------------------------
-      !
-      IF( nn_timing == 1 )   CALL timing_start('istate_init')
       !
       IF(lwp) WRITE(numout,*)
       IF(lwp) WRITE(numout,*) 'istate_init : Initialization of the dynamics and tracers'
       IF(lwp) WRITE(numout,*) '~~~~~~~~~~~'
+
+      CALL day_init       ! need this to read initial conditions with interpolation
 
 !!gm  Why not include in the first call of dta_tsd ?  
 !!gm  probably associated with the use of internal damping...
@@ -79,6 +78,10 @@ CONTAINS
       rn2b (:,:,:  ) = 0._wp   ;   rn2  (:,:,:  ) = 0._wp      ! set one for all to 0 at levels 1 and jpk
       tsa  (:,:,:,:) = 0._wp                                   ! set one for all to 0 at level jpk
       rab_b(:,:,:,:) = 0._wp   ;   rab_n(:,:,:,:) = 0._wp      ! set one for all to 0 at level jpk
+#if defined key_agrif
+      ua   (:,:,:  ) = 0._wp   ! used in agrif_oce_sponge at initialization
+      va   (:,:,:  ) = 0._wp   ! used in agrif_oce_sponge at initialization    
+#endif
 
       IF( ln_rstart ) THEN                    ! Restart from a file
          !                                    ! -------------------
@@ -86,11 +89,6 @@ CONTAINS
          IF (ln_iscpl)       CALL iscpl_stp   ! extrapolate restart to wet and dry
          CALL day_init                        ! model calendar (using both namelist and restart infos)
          !
-         IF( ln_reset_ts ) THEN
-         ! 19/01/18, DRM - modifications to overwrite the T &S from the restart files with the initial conditions.
-            CALL dta_tsd( nit000, tsb )          ! read 3D T and S data from the specified initial fields.
-            tsn  (:,:,:,:) = tsb (:,:,:,:)       ! set now values from to before ones for T & S.
-         ENDIF
       ELSE                                    ! Start from rest
          !                                    ! ---------------
          numror = 0                           ! define numror = 0 -> no restart file to read
@@ -102,6 +100,19 @@ CONTAINS
             CALL dta_tsd( nit000, tsb )       ! read 3D T and S data at nit000
             !
             sshb(:,:)   = 0._wp               ! set the ocean at rest
+            IF( ll_wd ) THEN
+               sshb(:,:) =  -ssh_ref  ! Added in 30 here for bathy that adds 30 as Iterative test CEOD 
+               !
+               ! Apply minimum wetdepth criterion
+               !
+               DO jj = 1,jpj
+                  DO ji = 1,jpi
+                     IF( ht_0(ji,jj) + sshb(ji,jj)  < rn_wdmin1 ) THEN
+                        sshb(ji,jj) = tmask(ji,jj,1)*( rn_wdmin1 - (ht_0(ji,jj)) )
+                     ENDIF
+                  END DO
+               END DO 
+            ENDIF 
             ub  (:,:,:) = 0._wp
             vb  (:,:,:) = 0._wp  
             !
@@ -112,9 +123,6 @@ CONTAINS
          sshn (:,:)     = sshb(:,:)   
          un   (:,:,:)   = ub  (:,:,:)
          vn   (:,:,:)   = vb  (:,:,:)
-         hdivn(:,:,jpk) = 0._wp               ! bottom divergence set one for 0 to zero at jpk level
-         CALL div_hor( 0 )                    ! compute interior hdivn value  
-!!gm                                    hdivn(:,:,:) = 0._wp
 
 !!gm POTENTIAL BUG :
 !!gm  ISSUE :  if sshb /= 0  then, in non linear free surface, the e3._n, e3._b should be recomputed
@@ -125,11 +133,11 @@ CONTAINS
          !
 !!gm to be moved in usrdef of C1D case
 !         IF ( ln_uvd_init .AND. lk_c1d ) THEN ! read 3D U and V data at nit000
-!            CALL wrk_alloc( jpi,jpj,jpk,2,   zuvd )
+!            ALLOCATE( zuvd(jpi,jpj,jpk,2) )
 !            CALL dta_uvd( nit000, zuvd )
 !            ub(:,:,:) = zuvd(:,:,:,1) ;  un(:,:,:) = ub(:,:,:)
 !            vb(:,:,:) = zuvd(:,:,:,2) ;  vn(:,:,:) = vb(:,:,:)
-!            CALL wrk_dealloc( jpi,jpj,jpk,2,   zuvd )
+!            DEALLOCATE( zuvd )
 !         ENDIF
          !
 !!gm This is to be changed !!!!
@@ -167,8 +175,6 @@ CONTAINS
       !
       ub_b(:,:) = ub_b(:,:) * r1_hu_b(:,:)
       vb_b(:,:) = vb_b(:,:) * r1_hv_b(:,:)
-      !
-      IF( nn_timing == 1 )   CALL timing_stop('istate_init')
       !
    END SUBROUTINE istate_init
 

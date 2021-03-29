@@ -26,10 +26,9 @@ MODULE in_out_manager
    CHARACTER(lc) ::   cn_ocerst_out    !: suffix of ocean restart name (output)
    CHARACTER(lc) ::   cn_ocerst_outdir !: restart output directory
    LOGICAL       ::   ln_rstart        !: start from (F) rest or (T) a restart file
-   LOGICAL       ::   ln_reset_ts      !: use TS from initial condition file? (F) no or (T) yes
    LOGICAL       ::   ln_rst_list      !: output restarts at list of times (T) or by frequency (F)
-   INTEGER       ::   nn_no            !: job number
    INTEGER       ::   nn_rstctl        !: control of the time step (0, 1 or 2)
+   LOGICAL       ::   ln_reset_ts      !: use TS from initial condition file? (F) no or (T) yes
    INTEGER       ::   nn_rstssh   = 0  !: hand made initilization of ssh or not (1/0)
    INTEGER       ::   nn_it000         !: index of the first time step
    INTEGER       ::   nn_itend         !: index of the last time step
@@ -44,6 +43,9 @@ MODULE in_out_manager
    LOGICAL       ::   ln_cfmeta        !: output additional data to netCDF files required for compliance with the CF metadata standard
    LOGICAL       ::   ln_clobber       !: clobber (overwrite) an existing file
    INTEGER       ::   nn_chunksz       !: chunksize (bytes) for NetCDF file (works only with iom_nf90 routines)
+   LOGICAL       ::   ln_xios_read     !: use xios to read single file restart
+   INTEGER       ::   nn_wxios         !: write resart using xios 0 - no, 1 - single, 2 - multiple file output
+   INTEGER       ::   nn_no            !: Assimilation cycle
 
 #if defined key_netcdf4
    !!----------------------------------------------------------------------
@@ -72,32 +74,51 @@ MODULE in_out_manager
    !! (this should disappear in a near futur)
 
    CHARACTER(lc) ::   cexper                      !: experiment name used for output filename
-   INTEGER       ::   no                          !: job number
    INTEGER       ::   nrstdt                      !: control of the time step (0, 1 or 2)
    INTEGER       ::   nit000                      !: index of the first time step
    INTEGER       ::   nitend                      !: index of the last time step
    INTEGER       ::   ndate0                      !: initial calendar date aammjj
    INTEGER       ::   nleapy                      !: Leap year calendar flag (0/1 or 30)
    INTEGER       ::   ninist                      !: initial state output flag (0/1)
-   INTEGER       ::   nwrite                      !: model standard output frequency
-   INTEGER       ::   nstock                      !: restart file frequency
-   INTEGER, DIMENSION(10) :: nstocklist           !: restart dump times
 
    !!----------------------------------------------------------------------
    !! was in restart but moved here because of the OFF line... better solution should be found...
    !!----------------------------------------------------------------------
    INTEGER ::   nitrst                !: time step at which restart file should be written
    LOGICAL ::   lrst_oce              !: logical to control the oce restart write 
+   LOGICAL ::   lrst_ice              !: logical to control the ice restart write 
    INTEGER ::   numror = 0            !: logical unit for ocean restart (read). Init to 0 is needed for SAS (in daymod.F90)
+   INTEGER ::   numrir                !: logical unit for ice   restart (read)
    INTEGER ::   numrow                !: logical unit for ocean restart (write)
+   INTEGER ::   numriw                !: logical unit for ice   restart (write)
    INTEGER ::   nrst_lst              !: number of restart to output next
 
    !!----------------------------------------------------------------------
    !!                    output monitoring
    !!----------------------------------------------------------------------
    LOGICAL ::   ln_ctl           !: run control for debugging
-   INTEGER ::   nn_timing        !: run control for timing
-   INTEGER ::   nn_diacfl        !: flag whether to create CFL diagnostics
+   TYPE :: sn_ctl                !: optional use structure for finer control over output selection
+      LOGICAL :: l_config  = .FALSE.  !: activate/deactivate finer control
+                                      !  Note if l_config is True then ln_ctl is ignored.
+                                      !  Otherwise setting ln_ctl True is equivalent to setting
+                                      !  all the following logicals in this structure True
+      LOGICAL :: l_runstat = .FALSE.  !: Produce/do not produce run.stat file (T/F)
+      LOGICAL :: l_trcstat = .FALSE.  !: Produce/do not produce tracer.stat file (T/F)
+      LOGICAL :: l_oceout  = .FALSE.  !: Produce all ocean.outputs    (T) or just one (F)
+      LOGICAL :: l_layout  = .FALSE.  !: Produce all layout.dat files (T) or just one (F)
+      LOGICAL :: l_mppout  = .FALSE.  !: Produce/do not produce mpp.output_XXXX files (T/F)
+      LOGICAL :: l_mpptop  = .FALSE.  !: Produce/do not produce mpp.top.output_XXXX files (T/F)
+                                      !  Optional subsetting of processor report files
+                                      !  Default settings of 0/1000000/1 should ensure all areas report.
+                                      !  Set to a more restrictive range to select specific areas
+      INTEGER :: procmin   = 0        !: Minimum narea to output
+      INTEGER :: procmax   = 1000000  !: Maximum narea to output
+      INTEGER :: procincr  = 1        !: narea increment to output
+      INTEGER :: ptimincr  = 1        !: timestep increment to output (time.step and run.stat)
+   END TYPE
+   TYPE(sn_ctl), SAVE :: sn_cfctl     !: run control structure for selective output, must have SAVE for default init. of sn_ctl
+   LOGICAL ::   ln_timing        !: run control for timing
+   LOGICAL ::   ln_diacfl        !: flag whether to create CFL diagnostics
    INTEGER ::   nn_print         !: level of print (0 no print)
    INTEGER ::   nn_ictls         !: Start i indice for the SUM control
    INTEGER ::   nn_ictle         !: End   i indice for the SUM control
@@ -105,8 +126,6 @@ MODULE in_out_manager
    INTEGER ::   nn_jctle         !: End   j indice for the SUM control
    INTEGER ::   nn_isplt         !: number of processors following i
    INTEGER ::   nn_jsplt         !: number of processors following j
-   INTEGER ::   nn_bench         !: benchmark parameter (0/1)
-   INTEGER ::   nn_bit_cmp = 0   !: bit reproducibility  (0/1)
    !                                          
    INTEGER ::   nprint, nictls, nictle, njctls, njctle, isplt, jsplt    !: OLD namelist names
 
@@ -117,8 +136,9 @@ MODULE in_out_manager
    !!----------------------------------------------------------------------
    INTEGER ::   numstp          =   -1      !: logical unit for time step
    INTEGER ::   numtime         =   -1      !: logical unit for timing
-   INTEGER ::   numout          =    6      !: logical unit for output print; Set to stdout to ensure any early
-                                            !  output can be collected; do not change
+   INTEGER ::   numout          =    6      !: logical unit for output print; Set to stdout to ensure any
+   INTEGER ::   numnul          =   -1      !: logical unit for /dev/null
+      !                                     !  early output can be collected; do not change
    INTEGER ::   numnam_ref      =   -1      !: logical unit for reference namelist
    INTEGER ::   numnam_cfg      =   -1      !: logical unit for configuration specific namelist
    INTEGER ::   numond          =   -1      !: logical unit for Output Namelist Dynamics
@@ -126,7 +146,7 @@ MODULE in_out_manager
    INTEGER ::   numnam_ice_cfg  =   -1      !: logical unit for ice reference namelist
    INTEGER ::   numoni          =   -1      !: logical unit for Output Namelist Ice
    INTEGER ::   numevo_ice      =   -1      !: logical unit for ice variables (temp. evolution)
-   INTEGER ::   numsol          =   -1      !: logical unit for solver statistics
+   INTEGER ::   numrun          =   -1      !: logical unit for run statistics
    INTEGER ::   numdct_in       =   -1      !: logical unit for transports computing
    INTEGER ::   numdct_vol      =   -1      !: logical unit for voulume transports output
    INTEGER ::   numdct_heat     =   -1      !: logical unit for heat    transports output
@@ -139,21 +159,24 @@ MODULE in_out_manager
    !!----------------------------------------------------------------------
    INTEGER       ::   no_print = 0          !: optional argument of fld_fill (if present, suppress some control print)
    INTEGER       ::   nstop = 0             !: error flag (=number of reason for a premature stop run)
+!$AGRIF_DO_NOT_TREAT
+   INTEGER       ::   ngrdstop = -1         !: grid number having nstop > 1
+!$AGRIF_END_DO_NOT_TREAT
    INTEGER       ::   nwarn = 0             !: warning flag (=number of warning found during the run)
    CHARACTER(lc) ::   ctmp1, ctmp2, ctmp3   !: temporary characters 1 to 3
    CHARACTER(lc) ::   ctmp4, ctmp5, ctmp6   !: temporary characters 4 to 6
    CHARACTER(lc) ::   ctmp7, ctmp8, ctmp9   !: temporary characters 7 to 9
    CHARACTER(lc) ::   ctmp10                !: temporary character 10
-   CHARACTER(lc) ::   cform_err = "(/,' ===>>> : E R R O R',     /,'         ===========',/)"       !:
-   CHARACTER(lc) ::   cform_war = "(/,' ===>>> : W A R N I N G', /,'         ===============',/)"   !:
    LOGICAL       ::   lwm      = .FALSE.    !: boolean : true on the 1st processor only (always)
    LOGICAL       ::   lwp      = .FALSE.    !: boolean : true on the 1st processor only .OR. ln_ctl
    LOGICAL       ::   lsp_area = .TRUE.     !: to make a control print over a specific area
    CHARACTER(lc) ::   cxios_context         !: context name used in xios
+   CHARACTER(lc) ::   crxios_context         !: context name used in xios to read restart
+   CHARACTER(lc) ::   cwxios_context        !: context name used in xios to write restart file
 
    !!----------------------------------------------------------------------
-   !! NEMO/OPA 3.3 , NEMO Consortium (2010)
-   !! $Id: in_out_manager.F90 7646 2017-02-06 09:25:03Z timgraham $
-   !! Software governed by the CeCILL licence     (NEMOGCM/NEMO_CeCILL.txt)
+   !! NEMO/OCE 4.0 , NEMO Consortium (2018)
+   !! $Id: in_out_manager.F90 12859 2020-05-03 09:33:32Z smasson $
+   !! Software governed by the CeCILL license (see ./LICENSE)
    !!=====================================================================
 END MODULE in_out_manager

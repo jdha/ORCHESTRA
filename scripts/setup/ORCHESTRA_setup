@@ -6,35 +6,36 @@ display_usage() {
    echo "  Auto-Config: ORCHESTRA on ARCHER"
    echo "  ***************************************"
    echo
-   echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo -m machine"
+   echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo -m machine -v version"
    echo
    echo "  flags:  -w full path to where nemo will be installed"
    echo "          -x full path to where xios will be installed"
-   echo "          -s full path to where ORCHESTRA repository resides"
+   echo "          -s full path to where the ORCHESTRA repository resides"
    echo "          -m machine on which to compile code"
+   echo "          -v which version of NEMO to check out"
    echo
    exit 1
-	} 
+        }
 # if less than three arguments supplied, display usage 
-	if [  $# -le 7 ] 
-	then 
-		display_usage
-		exit 1
-	fi 
+        if [  $# -le 9 ]
+        then
+                display_usage
+                exit 1
+        fi
 # if less than two arguments supplied, display usage 
-	if [  $# -ge 9 ] 
-	then 
-		display_usage
-		exit 1
-	fi 
+        if [  $# -ge 11 ]
+        then
+                display_usage
+                exit 1
+        fi
 # check whether user had supplied -h or --help . If yes display usage 
-	if [[ ( $# == "--help") ||  $# == "-h" ]] 
-	then 
-		display_usage
-		exit 0
-	fi 
+        if [[ ( $# == "--help") ||  $# == "-h" ]]
+        then
+                display_usage
+                exit 0
+        fi
 
-while getopts w:x:s:m: option
+while getopts w:x:s:m:v: option
   do
   case "${option}"
   in
@@ -42,6 +43,7 @@ while getopts w:x:s:m: option
   x) export XIOS_DIR=${OPTARG};;
   s) export REPO_DIR=${OPTARG};;
   m) export HPC_TARG=${OPTARG};;
+  v) export NEMO_VER=${OPTARG};;
   esac
 done
 
@@ -70,10 +72,6 @@ echo "Making sure that the correct modules are loaded"
 
 case "${HPC_TARG}"
   in
-  archer)  module swap PrgEnv-cray PrgEnv-intel
-           module load cray-hdf5-parallel
-           module load cray-netcdf-hdf5parallel
-           ;;
   archer2) module -s restore $REPO_DIR/scripts/env/ucx_env	   
 	   ;;
   *)       echo "Machine not recognised"
@@ -82,12 +80,52 @@ case "${HPC_TARG}"
 esac
 
 # Checkout the NEMO code from the SVN Paris repository 
-echo "Can't check out NEMO repository as it no longer exist. Building from saved files."
-mkdir nemo
-mkdir nemo/ARCH
+echo "Checking out NEMO repository"
 
-# Define the location of where the ICECAV forcing files are to be downloaded 
-export DOWNLOAD_DIR="$WORK_DIR/CONFIG/CORE2NYF-ORCH0083-LIM3/INPUTS/"
+case "${NEMO_VER}"
+  in
+  4.0.6)   echo "NEMO Verion 4.0.6 will be checked out"
+           ;;
+  *)       echo "NEMO Version not recognised"
+           echo "Versions available at present: 4.0.6"
+           exit 1
+esac
+
+# Checkout the NEMO code from the SVN Paris repository 
+echo "Checking out NEMO repository"
+case "${NEMO_VER}"
+  in
+  trunk)   svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk --depth empty nemo
+           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk/src --depth infinity nemo/src
+           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk/cfgs/SHARED nemo/cfgs/SHARED
+           svn export http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk/cfgs/ref_cfgs.txt nemo/cfgs/ref_cfgs.txt
+           ;;
+  *)       svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER --depth empty nemo
+           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER/src --depth infinity nemo/src
+           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER/cfgs/SHARED nemo/cfgs/SHARED
+           svn export http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER/cfgs/ref_cfgs.txt nemo/cfgs/ref_cfgs.txt
+           ;;
+esac
+
+cd nemo
+
+# Now check EXTERNALS revision number before checking out the rest
+for ext_name in mk FCM IOIPSL
+  do
+  ext=`svn propget svn:externals | grep $ext_name | cut -c2-`
+  svn co http://forge.ipsl.jussieu.fr/nemo/svn/$ext
+done
+
+ext=`svn propget svn:externals | grep makenemo | cut -c2-`
+svn export http://forge.ipsl.jussieu.fr/nemo/svn/$ext
+
+mkdir arch
+
+# Setup the directory structure for ORCHESTRA
+mkdir $WORK_DIR/nemo/cfgs/CORE2NYF-ORCH0083-LIM3
+
+# Define the location of where the forcing files are to be downloaded 
+export DOWNLOAD_DIR="$WORK_DIR/cfgs/CORE2NYF-ORCH0083-LIM3/INPUTS/"
 
 echo $XIOS_DIR
 # Choose an appropriate directory for your XIOS installation
@@ -97,47 +135,69 @@ fi
 cd $XIOS_DIR
 echo $PWD
 echo "Checking out xios repository"
-svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/trunk@819 xios
+case "${NEMO_VER}"
+  in
+  4.0.2)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+           ;;
+  4.0.3)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+           ;;
+  4.0.4)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+           ;;
+  4.0.5)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+           ;;
+  4.0.6)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+           ;;
+  trunk)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+           ;;
+  *)       echo "NEMO Version not recognised"
+           echo "Versions available: 4.0.2, 4.0.3, 4.0.4, 4.0.5, 4.0.6 and trunk"
+           exit 1
+esac
+
 cd xios
-cp $REPO_DIR/ARCH/xios/* ./arch
+cp $REPO_DIR/arch/xios/* ./arch
 echo "Compiling xios"
-./make_xios --full --prod --arch $HPC_TARG --netcdf_lib netcdf4_par --job 4
+./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 4
 # Dirty fix here as xios has to unpack before we can edit
 sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" tools/FCM/lib/Fcm/Config.pm > tmp_file
 mv tmp_file tools/FCM/lib/Fcm/Config.pm
 # Try once more
-./make_xios --full --prod --arch $HPC_TARG --netcdf_lib netcdf4_par --job 4
+./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 4
 
 # Let's update the path to xios
 export XIOS_DIR=$XIOS_DIR/xios
 
 cd $WORK_DIR/nemo
-cp -r $REPO_DIR/CONFIG .
-ln -s $REPO_DIR/NEMO NEMO
-ln -s $REPO_DIR/EXTERNAL EXTERNAL
-ln -s $REPO_DIR/TOOLS TOOLS
-cp $REPO_DIR/ARCH/nemo/* ./ARCH
+cp $REPO_DIR/arch/nemo/* ./arch
 # Dirty fix to hard wire path otherwise user will have to set XIOS_DIR in every new shell session
-sed "s?XXX_XIOS_DIR_XXX?$XIOS_DIR?" ./ARCH/arch-$HPC_TARG.fcm > tmp_arch
-mv tmp_arch ./ARCH/arch-$HPC_TARG.fcm
+sed "s?XXX_XIOS_DIR_XXX?$XIOS_DIR?" ./arch/arch-archer2.fcm > tmp_arch
+mv tmp_arch ./arch/arch-archer2.fcm
 
+echo 'CORE2NYF-ORCH0083-LIM3 OCE ICE' >> $WORK_DIR/nemo/cfgs/work_cfgs.txt
+
+mkdir cfgs/CORE2NYF-ORCH0083-LIM3/EXP00
+mkdir cfgs/CORE2NYF-ORCH0083-LIM3/EXP_SZT
+mkdir cfgs/CORE2NYF-ORCH0083-LIM3/EXP_ZPS
 echo "Gathering forcing data"
 
-export CONFIG_DIR=$WORK_DIR/nemo/CONFIG/CORE2NYF-ORCH0083-LIM3
+export CONFIG_DIR=$WORK_DIR/nemo/cfgs/CORE2NYF-ORCH0083-LIM3
 
 # Set up EXP00 
 
 cd $CONFIG_DIR/EXP_SZT
 ln -s ../../SHARED/namelist_ref namelist_ref
-ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_ref
+ln -s ../../SHARED/namelist_ice_ref namelist_ice_ref
 ln -s ../../SHARED/namelist_top_ref namelist_top_ref
 ln -s ../../SHARED/namelist_pisces_ref namelist_pisces_ref
-ln -s ../../SHARED/field_def_nemo-opa.xml field_def_nemo-opa.xml
+ln -s ../../SHARED/grid_def_nemo.xml grid_def_nemo.xml
+ln -s ../../SHARED/field_def_nemo-oce.xml field_def_nemo-oce.xml
 ln -s ../../SHARED/field_def_nemo-pisces.xml field_def_nemo-pisces.xml
-ln -s ../../SHARED/field_def_nemo-lim.xml field_def_nemo-lim.xml
+ln -s ../../SHARED/field_def_nemo-ice.xml field_def_nemo-ice.xml
 ln -s ../../SHARED/domain_def_nemo.xml domain_def_nemo.xml
+ln -s ../../SHARED/axis_def_nemo.xml axis_def_nemo.xml
 ln -s ../INPUTS INPUTS
 ln -s ../FORCING FORCING
+ln -s ../BDY_ECCO_RW24 BDY_ECCO_RW24
 ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
@@ -145,9 +205,7 @@ mkdir OUTPUTS
 
 case "${HPC_TARG}"
   in
-  archer)  cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
-           ;;
-  archer2) sed "s?_REPO_DIR_?$REPO_DIR?" $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs > runscript.pbs	   
+  archer2) sed "s?_REPO_DIR_?$REPO_DIR?" $REPO_DIR/scripts/run/runscript_$HPC_TARG.slurm > runscript.slurm	   
 	   ;;
   *)       echo "Machine not recognised. You will need to create your own runscript."
            echo "Machines available: archer, archer2"
@@ -156,15 +214,18 @@ esac
 
 cd $CONFIG_DIR/EXP_ZPS
 ln -s ../../SHARED/namelist_ref namelist_ref
-ln -s ../../SHARED/namelist_ice_lim3_ref namelist_ice_ref
+ln -s ../../SHARED/namelist_ice_ref namelist_ice_ref
 ln -s ../../SHARED/namelist_top_ref namelist_top_ref
 ln -s ../../SHARED/namelist_pisces_ref namelist_pisces_ref
-ln -s ../../SHARED/field_def_nemo-opa.xml field_def_nemo-opa.xml
+ln -s ../../SHARED/grid_def_nemo.xml grid_def_nemo.xml
+ln -s ../../SHARED/field_def_nemo-oce.xml field_def_nemo-oce.xml
 ln -s ../../SHARED/field_def_nemo-pisces.xml field_def_nemo-pisces.xml
-ln -s ../../SHARED/field_def_nemo-lim.xml field_def_nemo-lim.xml
+ln -s ../../SHARED/field_def_nemo-ice.xml field_def_nemo-ice.xml
 ln -s ../../SHARED/domain_def_nemo.xml domain_def_nemo.xml
+ln -s ../../SHARED/axis_def_nemo.xml axis_def_nemo.xml
 ln -s ../INPUTS INPUTS
 ln -s ../FORCING FORCING
+ln -s ../BDY_ECCO_RW24 BDY_ECCO_RW24
 ln -s $XIOS_DIR/bin/xios_server.exe xios_server.exe
 mkdir meta_out
 mkdir RESTARTS
@@ -172,9 +233,7 @@ mkdir OUTPUTS
 
 case "${HPC_TARG}"
   in
-  archer)  cp $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs runscript.pbs
-           ;;
-  archer2) sed "s?_REPO_DIR_?$REPO_DIR?" $REPO_DIR/scripts/run/runscript_$HPC_TARG.pbs > runscript.pbs	   
+  archer2) sed "s?_REPO_DIR_?$REPO_DIR?" $REPO_DIR/scripts/run/runscript_$HPC_TARG.slurm > runscript.slurm	   
 	   ;;
   *)       echo "Machine not recognised. You will need to create your own runscript."
            echo "Machines available: archer, archer2"
@@ -188,23 +247,23 @@ wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jm
 wget -r -nd -np -e robots=off -A 'name*' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
 wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
 
-cd $WORK_DIR/nemo/EXTERNAL/fcm/lib/Fcm
+cd $WORK_DIR/nemo/ext/FCM/lib/Fcm
 sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" Config.pm > tmp_file
 mv tmp_file Config.pm
 
-cd $WORK_DIR/nemo/CONFIG
-mkdir $CONFIG_DIR/EXP00
+cd $WORK_DIR/nemo
+mkdir $CONFIG_DIR/EXPREF
 
 echo "Compiling nemo ORCHESTRA Config INIT"
 ./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8
-cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXP00/opa_init
+cp cfgs/CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXPREF/opa_init
 
 rm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
 ln -s cpp_CORE2NYF-ORCH0083-LIM3_SPIN.fcm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
 echo "Compiling nemo ORCHESTRA Config MAIN"
 ./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8 clean
 ./makenemo -m $HPC_TARG -n CORE2NYF-ORCH0083-LIM3 -j 8
-cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXP00/opa_main
+cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXPREF/opa_main
 
 echo
 echo "  Auto-Config: ORCHESTRA"
@@ -212,7 +271,7 @@ echo "  *****************************"
 echo
 echo "  To run the ORCHESTRA Configuration:"
 echo
-echo "  - update the runscript.pbs accordingly "
+echo "  - update the runscript.slurm accordingly "
 echo "      (project code, nodes, modules, etc)"
 echo
 echo "  - submit via the qsub/sbatch command"

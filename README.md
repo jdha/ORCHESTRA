@@ -6,7 +6,7 @@ Southern Ocean 1/12 NEMO configuration
 ```
 git clone git@github.com:jdha/ORCHESTRA.git
 git checkout nemo4
-./ORCHESTRA/scripts/setup/ORCHESTRA_setup -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA -m archer2 -v 406
+./ORCHESTRA/scripts/setup/ORCHESTRA_setup -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA -m archer2 -v 4.0.6
 cd orch/nemo/cfgs/CORE2NYF-ORCH0083-LIM3/EXP_ZPS
 ```
 Edit the project code in  `runscript.slurm` then:

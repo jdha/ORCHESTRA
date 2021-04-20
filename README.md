@@ -5,6 +5,7 @@ Southern Ocean 1/12 NEMO configuration
 
 ```
 git clone git@github.com:jdha/ORCHESTRA.git
+git checkout nemo3
 ./ORCHESTRA/scripts/setup/ORCHESTRA_setup -w $PWD/orch -x $PWD/orch -s $PWD/ORCHESTRA -m archer
 cd orch/nemo/CONFIG/CORE2NYF-ORCH0083-LIM3/EXP_ZPS
 ```

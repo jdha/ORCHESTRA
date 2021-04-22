@@ -104,9 +104,9 @@ CONTAINS
       IF( ln_tsd_interp .AND. ln_tsd_dmp ) THEN
             CALL ctl_stop( 'dta_tsd_init: Tracer damping and vertical interpolation not yet configured' )   ;   RETURN
       ENDIF
-      IF( ln_tsd_interp .AND. LEN(TRIM(sn_msk%wname)) > 0 ) THEN
-            CALL ctl_stop( 'dta_tsd_init: Using vertical interpolation and weights files not recommended' )   ;   RETURN
-      ENDIF
+!      IF( ln_tsd_interp .AND. LEN(TRIM(sn_msk%wname)) > 0 ) THEN
+!            CALL ctl_stop( 'dta_tsd_init: Using vertical interpolation and weights files not recommended' )   ;   RETURN
+!      ENDIF
       !
       !                             ! allocate the arrays (if necessary)
       IF( ln_tsd_init .OR. ln_tsd_dmp ) THEN

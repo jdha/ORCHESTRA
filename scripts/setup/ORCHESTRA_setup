@@ -3,16 +3,17 @@
  
 display_usage() { 
    echo
-   echo "  Auto-Config: ORCHESTRA on ARCHER"
+   echo "  Auto-Config: ORCHESTRA on ARCHER2"
    echo "  ***************************************"
    echo
-   echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo -m machine -v version"
+   echo "  usage: ${0##*/} -w path_to_install_nemo -x path_to_intall_xios -s path_to_repo -m machine -v version -c commit_SHA"
    echo
    echo "  flags:  -w full path to where nemo will be installed"
    echo "          -x full path to where xios will be installed"
    echo "          -s full path to where the ORCHESTRA repository resides"
    echo "          -m machine on which to compile code"
    echo "          -v which version of NEMO to check out"
+   echo "          -c commit SHA to check out"
    echo
    exit 1
         }
@@ -35,7 +36,11 @@ display_usage() {
                 exit 0
         fi
 
-while getopts w:x:s:m:v: option
+BRANCH=main
+# SHA from 18/07/2022
+COMMIT=cabbd8219653b4609b62cdf8ec6581cceb9bcbff
+
+while getopts w:x:s:m:v:c: option
   do
   case "${option}"
   in
@@ -43,7 +48,8 @@ while getopts w:x:s:m:v: option
   x) export XIOS_DIR=${OPTARG};;
   s) export REPO_DIR=${OPTARG};;
   m) export HPC_TARG=${OPTARG};;
-  v) export NEMO_VER=${OPTARG};;
+  b) export BRANCH=${OPTARG};;
+  c) export COMMIT=${OPTARG};;
   esac
 done
 
@@ -82,30 +88,24 @@ esac
 # Checkout the NEMO code from the SVN Paris repository 
 echo "Checking out NEMO repository"
 
-case "${NEMO_VER}"
-  in
-  4.0.6)   echo "NEMO Verion 4.0.6 will be checked out"
-           ;;
-  *)       echo "NEMO Version not recognised"
-           echo "Versions available at present: 4.0.6"
-           exit 1
-esac
+# case "${NEMO_VER}"
+#   in
+#   4.0.6)   echo "NEMO Verion 4.0.6 will be checked out"
+#            ;;
+#   *)       echo "NEMO Version not recognised"
+#            echo "Versions available at present: 4.0.6"
+#            exit 1
+# esac
 
 # Checkout the NEMO code from the SVN Paris repository 
+# Checkout as per https://github.com/immerse-project/wp6.2-demonstrator/blob/main/scripts/setup
 echo "Checking out NEMO repository"
-case "${NEMO_VER}"
-  in
-  trunk)   svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk --depth empty nemo
-           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk/src --depth infinity nemo/src
-           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk/cfgs/SHARED nemo/cfgs/SHARED
-           svn export http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/trunk/cfgs/ref_cfgs.txt nemo/cfgs/ref_cfgs.txt
-           ;;
-  *)       svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER --depth empty nemo
-           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER/src --depth infinity nemo/src
-           svn co http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER/cfgs/SHARED nemo/cfgs/SHARED
-           svn export http://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/r4.0/r$NEMO_VER/cfgs/ref_cfgs.txt nemo/cfgs/ref_cfgs.txt
-           ;;
-esac
+git clone https://forge.nemo-ocean.eu/nemo/nemo.git -b "$BRANCH" "$NEMODIR" || exit
+if [ -n "${COMMIT}" ]; then
+    cd "$NEMODIR" || exit
+    git reset --hard "$COMMIT" || exit
+    cd "$WD" || exit
+fi
 
 cd nemo
 
@@ -135,34 +135,38 @@ fi
 cd $XIOS_DIR
 echo $PWD
 echo "Checking out xios repository"
-case "${NEMO_VER}"
-  in
-  4.0.2)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
-           ;;
-  4.0.3)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
-           ;;
-  4.0.4)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
-           ;;
-  4.0.5)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
-           ;;
-  4.0.6)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
-           ;;
-  trunk)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
-           ;;
-  *)       echo "NEMO Version not recognised"
-           echo "Versions available: 4.0.2, 4.0.3, 4.0.4, 4.0.5, 4.0.6 and trunk"
-           exit 1
-esac
+svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/trunk xios
+
+# Not required for v4.2
+# case "${NEMO_VER}"
+#   in
+#   4.0.2)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+#            ;;
+#   4.0.3)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+#            ;;
+#   4.0.4)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+#            ;;
+#   4.0.5)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+#            ;;
+#   4.0.6)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+#            ;;
+#   trunk)   svn co http://forge.ipsl.jussieu.fr/ioserver/svn/XIOS/branchs/xios-2.5@1964 xios
+#            ;;
+#   *)       echo "NEMO Version not recognised"
+#            echo "Versions available: 4.0.2, 4.0.3, 4.0.4, 4.0.5, 4.0.6 and trunk"
+#            exit 1
+# esac
+
 
 cd xios
 cp $REPO_DIR/arch/xios/* ./arch
 echo "Compiling xios"
-./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 4
+./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 16
 # Dirty fix here as xios has to unpack before we can edit
 sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" tools/FCM/lib/Fcm/Config.pm > tmp_file
 mv tmp_file tools/FCM/lib/Fcm/Config.pm
 # Try once more
-./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 4
+./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 16
 
 # Let's update the path to xios
 export XIOS_DIR=$XIOS_DIR/xios
@@ -257,15 +261,15 @@ cp -rP $REPO_DIR/EXP_SZT/* $CONFIG_DIR/EXP_SZT
 cp -rP $REPO_DIR/EXP_ZPS/* $CONFIG_DIR/EXP_ZPS
 
 echo "Compiling nemo ORCHESTRA Config INIT"
-./makenemo -m $HPC_TARG -r CORE2NYF-ORCH0083-LIM3 -j 8
-cp cfgs/CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXPREF/opa_init
+./makenemo -m $HPC_TARG -r CORE2NYF-ORCH0083-LIM3 -j 16
+cp cfgs/CORE2NYF-ORCH0083-LIM3/EXP00/nemo CORE2NYF-ORCH0083-LIM3/EXPREF/nemo_init
 
 rm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
 ln -s cpp_CORE2NYF-ORCH0083-LIM3_SPIN.fcm CORE2NYF-ORCH0083-LIM3/cpp_CORE2NYF-ORCH0083-LIM3.fcm
 echo "Compiling nemo ORCHESTRA Config MAIN"
-./makenemo -m $HPC_TARG -r CORE2NYF-ORCH0083-LIM3 -j 8 clean
-./makenemo -m $HPC_TARG -r CORE2NYF-ORCH0083-LIM3 -j 8
-cp CORE2NYF-ORCH0083-LIM3/EXP00/opa CORE2NYF-ORCH0083-LIM3/EXPREF/opa_main
+./makenemo -m $HPC_TARG -r CORE2NYF-ORCH0083-LIM3 -j 16 clean
+./makenemo -m $HPC_TARG -r CORE2NYF-ORCH0083-LIM3 -j 16
+cp CORE2NYF-ORCH0083-LIM3/EXP00/nemo CORE2NYF-ORCH0083-LIM3/EXPREF/nemo_main
 
 echo
 echo "  Auto-Config: ORCHESTRA"

@@ -109,15 +109,16 @@ fi
 
 cd nemo
 
-# Now check EXTERNALS revision number before checking out the rest
-for ext_name in mk FCM IOIPSL
-  do
-  ext=`svn propget svn:externals | grep $ext_name | cut -c2-`
-  svn co http://forge.ipsl.jussieu.fr/nemo/svn/$ext
-done
+# External snippet below is no longer required as ext is included in the git repo now @jdha
+## Now check EXTERNALS revision number before checking out the rest
+#for ext_name in mk FCM IOIPSL
+#  do
+#  ext=`svn propget svn:externals | grep $ext_name | cut -c2-`
+#  svn co http://forge.ipsl.jussieu.fr/nemo/svn/$ext
+#done
 
-ext=`svn propget svn:externals | grep makenemo | cut -c2-`
-svn export http://forge.ipsl.jussieu.fr/nemo/svn/$ext
+#ext=`svn propget svn:externals | grep makenemo | cut -c2-`
+#svn export http://forge.ipsl.jussieu.fr/nemo/svn/$ext
 
 mkdir arch
 

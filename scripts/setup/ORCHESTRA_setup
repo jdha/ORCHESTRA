@@ -163,11 +163,12 @@ cd xios
 cp $REPO_DIR/arch/xios/* ./arch
 echo "Compiling xios"
 ./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 16
+# next lines should be redundant after modsearch fix to xios arch file
 # Dirty fix here as xios has to unpack before we can edit
-sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" tools/FCM/lib/Fcm/Config.pm > tmp_file
-mv tmp_file tools/FCM/lib/Fcm/Config.pm
+#sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" tools/FCM/lib/Fcm/Config.pm > tmp_file
+#mv tmp_file tools/FCM/lib/Fcm/Config.pm
 # Try once more
-./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 16
+#./make_xios --full --prod --arch archer2 --netcdf_lib netcdf4_par --job 16
 
 # Let's update the path to xios
 export XIOS_DIR=$XIOS_DIR/xios
@@ -250,9 +251,10 @@ wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jm
 wget -r -nd -np -e robots=off -A 'name*' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/INPUTS/ -P $CONFIG_DIR/INPUTS/
 wget -r -nd -np -e robots=off -A '*.nc' http://gws-access.jasmin.ac.uk/public/jmmp_collab/ORCHESTRA/FORCING/ -P $CONFIG_DIR/FORCING/
 
-cd $WORK_DIR/nemo/ext/FCM/lib/Fcm
-sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" Config.pm > tmp_file
-mv tmp_file Config.pm
+# next lines should be redundant after modsearch fix to nemo arch file
+#cd $WORK_DIR/nemo/ext/FCM/lib/Fcm
+#sed -e "s/FC_MODSEARCH => '',  /FC_MODSEARCH => '-J',/" Config.pm > tmp_file
+#mv tmp_file Config.pm
 
 cd $WORK_DIR/nemo
 mkdir $CONFIG_DIR/EXPREF

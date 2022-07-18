@@ -761,7 +761,7 @@
 &namzdf        !   vertical physics manager                             (default: NO selection)
 !-----------------------------------------------------------------------
    !                       ! adaptive-implicit vertical advection
-   ln_zad_Aimp = .false.      !  Courant number dependent scheme (Shchepetkin 2015)
+   ln_zad_Aimp = .true.      !  Courant number dependent scheme (Shchepetkin 2015)
    !
    !                       ! type of vertical closure (required)
    ln_zdfcst   = .false.      !  constant mixing
@@ -769,6 +769,7 @@
    ln_zdftke   = .true.       !  Turbulent Kinetic Energy closure       (T =>   fill namzdf_tke)
    ln_zdfgls   = .false.      !  Generic Length Scale closure           (T =>   fill namzdf_gls)
    ln_zdfosm   = .false.      !  OSMOSIS BL closure                     (T =>   fill namzdf_osm)
+   ln_zdftmx   = .true.       !: old tidal mixing scheme (Simmons et al 2004) (T => fill namzdf_tmx)
    !
    !                       ! convection
    ln_zdfevd   = .true.       !  enhanced vertical diffusion

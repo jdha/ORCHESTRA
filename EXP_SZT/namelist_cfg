@@ -558,11 +558,13 @@
 !-----------------------------------------------------------------------
 &namzdf        !   vertical physics
 !-----------------------------------------------------------------------
+   ln_zad_Aimp = .true.      !  Courant number dependent scheme (Shchepetkin 2015)
    nn_havtb    =    1      !  horizontal shape for avtb (=1) or not (=0)
    nn_evdm     =    1      !  evd apply on tracer (=0) or on tracer and momentum (=1)
    rn_avevd    =  10.      !  evd mixing coefficient [m2/s]
    ln_zdfnpc   = .false.   !  Non-Penetrative Convective algorithm (T) or not (F)
    ln_zdfexp   = .false.   !  time-stepping: split-explicit (T) or implicit (F) time stepping
+   ln_zdftmx   = .true.      !: old tidal mixing scheme (Simmons et al 2004) (T =>   fill namzdf_tmx)
 /
 !-----------------------------------------------------------------------
 &namzdf_ric    !   richardson number dependent vertical diffusion       ("key_zdfric" )
